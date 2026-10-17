@@ -60,3 +60,8 @@ canvas.sg{background:#fff;border-radius:8px;width:100%;max-width:320px;touch-act
  body{background:#fff}
  #pa .sheet{height:29.69cm;overflow:hidden;page-break-after:avoid}
 }
+
+.gate{text-align:center;padding-top:24px}.gate img{height:120px}.gate h1{margin:10px 0 4px}
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:18px 0}
+.role{border:0;color:#fff;border-radius:18px;padding:28px 18px;cursor:pointer;font-size:16px;background:var(--panel)}.role b{display:block;font-size:24px;margin-bottom:6px}
+.role.c2{background:var(--teal)}.role.c3{background:var(--violet)}.role.c4{background:var(--amber)}

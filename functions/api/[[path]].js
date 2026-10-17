@@ -18,7 +18,7 @@ export async function onRequest({request,env,params}){
     if(!canEdit)return J({error:'ไม่มีสิทธิ์แก้ไข'},403);
     const b=['POST','PUT'].includes(m)?await request.json():null;
     if(seg[0]==='people'&&m==='POST'){await upP(db,b).run();return J({ok:1})}
-    if(seg[0]==='people'&&m==='DELETE'){await db.prepare('DELETE FROM people WHERE id=?').bind(seg[1]).run();return J({ok:1})}
+    if(seg[0]==='people'&&m==='DELETE'){await db.batch([db.prepare('DELETE FROM leaves WHERE pid=?').bind(seg[1]),db.prepare('DELETE FROM people WHERE id=?').bind(seg[1])]);return J({ok:1})}
     if(seg[0]==='leaves'&&m==='POST'){await upL(db,b).run();return J({ok:1})}
     if(seg[0]==='leaves'&&m==='DELETE'){await db.prepare('DELETE FROM leaves WHERE id=?').bind(seg[1]).run();return J({ok:1})}
     if(seg[0]==='settings'&&m==='PUT'){await db.batch(Object.entries(b).map(([k,v])=>upS(db,k,v)));return J({ok:1})}
