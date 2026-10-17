@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-let S={},L=[],role=null,me=null,view='dash',F={mode:'fy',year:fy(new Date().toISOString().slice(0,10)),term:1};
+let sel=null,S={},L=[],role=null,me=null,view='dash',F={mode:'fy',year:fy(new Date().toISOString().slice(0,10)),term:1};
 const people=()=>S.teachers.split('\n').filter(Boolean).map(x=>{const [n,p,t]=x.split('|');return{n:n.trim(),p:(p||'').trim(),t:(t||'').trim()}});
 const today=()=>new Date().toISOString().slice(0,10);
 async function init(){S=await db.settings();L=await db.leaves();render()}
@@ -13,8 +13,9 @@ function render(){
  <nav>${nav.map(n=>`<button class="ni ${view==n[0]?'on':''}" onclick="go('${n[0]}')"><i class="${n[3]}">${n[2]}</i>${n[1]}</button>`).join('')}</nav>
  <div class="sfoot"><small>บทบาท: ${role}${me?' · '+me.n:''}<br>ข้อมูลเก็บบน Cloudflare D1</small><button class="btn l" onclick="role=null;me=null;render()">ออกจากระบบ</button></div></aside>
  <section class="content"><main><h2>${cur[1]}</h2><p class="sub">${cur[4]}</p>${{dash,new:newForm,list,set:settings}[view]()}<div class="foot">${CREDIT}</div></main></section></div>`;
- if(view=='new')initPad('pad');if(view=='set')['clerk','personnel','director'].forEach(k=>initPad('p_'+k,S.sigs[k]))}
-function go(v){view=v;render()}
+ if(view=='new')initPad('pad');if(view=='set')['clerk','personnel','director'].forEach(k=>initPad('p_'+k,S.sigs[k]));fitPv()}
+function go(v){view=v;sel=null;render()}
+function fitPv(){const pv=$('#pv');if(!pv)return;const sc=Math.min(1,pv.clientWidth/794);pv.firstChild.style.transform=`scale(${sc})`;pv.style.height=1123*sc+'px'}
 function login(r){role=r;view='dash';me=null;
  if(r=='ครู'){const p=people();if(!p.length){role=null;return alert('เพิ่มรายชื่อครูในเมนูตั้งค่าก่อน')}me=p[0];
   modal(`<div class="mb"><h3>เลือกชื่อครู</h3><select id="who">${p.map((x,i)=>`<option value="${i}">${x.n}</option>`).join('')}</select><p><button class="btn g" onclick="me=people()[$('#who').value];closeM();render()">เข้าสู่ระบบ</button></p></div>`)}
@@ -43,8 +44,7 @@ async function saveLeave(){
  const l={id:Date.now(),name:me.n,pos:me.p,type:g('f_type'),date:g('f_date'),start:g('f_start'),end:g('f_end'),days:g('f_days'),reason:g('f_reason'),phone:g('f_phone'),sig,status:'รอตรวจสอบ'};
  await db.save(l);L=await db.leaves();view='list';render();preview(l.id)}
 const byId=id=>L.find(x=>x.id==id);
-function preview(id){const l=byId(id);modal(`<div class="mb"><div class="mbar"><button class="btn g" onclick="doPrint(${id})">🖨️ พิมพ์</button><button class="btn p" onclick="doPDF(${id})">📄 PDF</button><button class="btn l" onclick="closeM()">ปิด</button></div><div class="pv" id="pv">${docHTML(l,S,L)}</div></div>`);
- const sc=Math.min(1,(innerWidth-50)/794),pv=$('#pv');pv.firstChild.style.transform=`scale(${sc})`;pv.style.height=1123*sc+'px'}
+function preview(id){sel=id;view='list';render();const c=$('#pvCard');if(c)c.scrollIntoView({behavior:'smooth'})}
 function doPrint(id){$('#printRoot').innerHTML=docHTML(byId(id),S,L);setTimeout(()=>print(),100)}
 async function doPDF(id){const l=byId(id);modal('<div class="mb"><p>กำลังสร้าง PDF...</p></div>');
  const r=await makePDF(l,S,L);window._pdf=r;
@@ -56,8 +56,8 @@ function list(){const a=[...mine()].sort((x,y)=>y.start.localeCompare(x.start));
  ${a.map(l=>`<tr><td>${thS(l.start)}</td><td>${l.name}</td><td>${l.type}</td><td>${l.days}</td><td><span class="tag ${sc[l.status]}">${l.status}</span></td><td>
  <button class="btn s" onclick="preview(${l.id})">ดู/พิมพ์</button> <button class="btn s p" onclick="doPDF(${l.id})">PDF</button>
  ${role=='ธุรการ'&&!l.checked?`<button class="btn s g" onclick="checkM(${l.id})">ตรวจสอบ</button>`:''}${role=='ผู้อำนวยการ'&&l.checked&&!l.decided?`<button class="btn s o" onclick="decM(${l.id})">พิจารณา</button>`:''}
- ${role!='ผู้อำนวยการ'&&!l.decided?`<button class="btn s r" onclick="delL(${l.id})">ลบ</button>`:''}</td></tr>`).join('')||'<tr><td colspan=6>ยังไม่มีใบลา</td></tr>'}</table></div>`}
-async function delL(id){if(confirm('ลบใบลานี้?')){await db.del(id);L=await db.leaves();render()}}
+ ${role!='ผู้อำนวยการ'&&!l.decided?`<button class="btn s r" onclick="delL(${l.id})">ลบ</button>`:''}</td></tr>`).join('')||'<tr><td colspan=6>ยังไม่มีใบลา</td></tr>'}</table></div>${sel&&byId(sel)?`<div class="card" id="pvCard" style="margin-top:18px"><div class="mbar"><b style="flex:1;align-self:center">ตัวอย่างเอกสาร — ${byId(sel).name}</b><button class="btn o" onclick="doPrint(${sel})">🖨️ พิมพ์</button><button class="btn p" onclick="doPDF(${sel})">📄 PDF (ดูตัวอย่าง/ดาวน์โหลด)</button><button class="btn l" onclick="sel=null;render()">ปิดตัวอย่าง</button></div><p class="sub" style="margin:0 0 10px">ปุ่มพิมพ์: เลือก A4 และไม่ต้องติ๊ก “ส่วนหัวและส่วนท้าย” · ปุ่ม PDF: สร้างไฟล์ให้ดูตัวอย่างก่อน (ใช้บนมือถือได้) แล้วกดดาวน์โหลด</p><div class="pv" id="pv" style="background:#fff;box-shadow:var(--shadow)">${docHTML(byId(sel),S,L)}</div></div>`:''}`}
+async function delL(id){if(confirm('ลบใบลานี้?')){await db.del(id);if(sel==id)sel=null;L=await db.leaves();render()}}
 function checkM(id){modal(`<div class="mb"><h3>ตรวจสอบสถิติและความเห็นฝ่ายบุคคล</h3><p>ระบบคำนวณสถิติอัตโนมัติ และใช้ลายเซ็นผู้ตรวจสอบ/ฝ่ายบุคคลจากเมนูตั้งค่า</p><label>ความเห็นฝ่ายบุคคล</label><input id="po" value="เห็นควรอนุญาต"><p><button class="btn g" onclick="doCheck(${id})">บันทึก</button> <button class="btn l" onclick="closeM()">ยกเลิก</button></p></div>`)}
 async function doCheck(id){const l=byId(id);Object.assign(l,{checked:1,checkDate:today(),pOpinion:$('#po').value,status:'รอพิจารณา'});await db.save(l);closeM();L=await db.leaves();render()}
 function decM(id){modal(`<div class="mb"><h3>พิจารณาใบลา</h3><select id="dc"><option>อนุญาต</option><option>ไม่อนุญาต</option></select><label>หมายเหตุ</label><input id="dm"><p><button class="btn g" onclick="doDec(${id})">บันทึก</button> <button class="btn l" onclick="closeM()">ยกเลิก</button></p></div>`)}
@@ -83,3 +83,5 @@ function settings(){const f=(k,l)=>`<div><label>${l}</label><input id="s_${k}" v
 async function saveS(){['school','area','director','clerk','clerkPos','personnel','personnelPos','fileFmt','teachers'].forEach(k=>S[k]=$('#s_'+k).value);
  S.sigs={};['clerk','personnel','director'].forEach(k=>S.sigs[k]=pads['p_'+k].get());await db.saveSettings(S);alert('บันทึกแล้ว');render()}
 init();
+
+addEventListener('resize',fitPv);
