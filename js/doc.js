@@ -3,8 +3,9 @@ const sgH=x=>{x=nsg(x);return`<div class="sgw">${x&&x.img?`<img src="${x.img}" s
 const pd=s=>{const [y,m,d]=s.split('-').map(Number);return{d,m:MONTHS[m-1],y:y+543}};
 const thS=s=>{if(!s)return'-';const x=pd(s);return`${x.d} ${x.m} ${x.y}`};
 const fy=s=>{const [y,m]=s.split('-').map(Number);return m>=10?y+544:y+543};
-const ay=s=>{const [y,m]=s.split('-').map(Number);return m>=5?y+543:y+542};
-const term=s=>{const m=+s.split('-')[1];return m>=5&&m<=10?1:2};
+let T1=5,T2=11; // เดือนเริ่มภาคเรียน 1 และ 2 (ตั้งค่าได้)
+const ay=s=>{const [y,m]=s.split('-').map(Number);return m>=T1?y+543:y+542};
+const term=s=>{const m=+s.split('-')[1];return m>=T1&&m<T2?1:2};
 function stats(l,all){const o={};TYPES.forEach(t=>{const prior=all.filter(x=>x.id!=l.id&&x.name==l.name&&x.type==t&&x.status!='ไม่อนุญาต'&&fy(x.start)==fy(l.start)&&x.start<l.start).reduce((a,x)=>a+ +x.days,0);const now=l.type==t?+l.days:0;o[t]=[prior,now,prior+now]});return o}
 function lastLeave(l,all){return all.filter(x=>x.id!=l.id&&x.name==l.name&&x.type==l.type&&x.start<l.start&&x.status!='ไม่อนุญาต').sort((a,b)=>b.start.localeCompare(a.start))[0]}
 function docHTML(l,S,all){
@@ -21,14 +22,14 @@ function docHTML(l,S,all){
 <div class="two"><div><b>๑. สถิติการลาในปีงบประมาณนี้</b>
 <table><tr><th>ประเภทการลา</th><th>ลามาแล้ว<br>(วันทำการ)</th><th>ลาครั้งนี้<br>(วันทำการ)</th><th>รวมเป็น<br>(วันทำการ)</th></tr>
 ${TYPES.map(t=>`<tr><td>${t}</td><td>${st[t][0]}</td><td>${st[t][1]}</td><td>${st[t][2]}</td></tr>`).join('')}</table>
-<div class="c" style="margin-top:3mm">${l.checked?sg(S.sigs.clerk):sgH()}(ลงชื่อ)................................ ผู้ตรวจสอบ<br>(${S.clerk})<br>ตำแหน่ง ${S.clerkPos}<br>วันที่ ${l.checked?thS(l.checkDate):'......./......./.......'}</div></div>
+<div class="c" style="margin-top:3mm">${l.checked?sg(l.cSig||S.sigs.clerk):sgH()}(ลงชื่อ)................................ ผู้ตรวจสอบ<br>(${S.clerk})<br>ตำแหน่ง ${S.clerkPos}<br>วันที่ ${l.checked?thS(l.checkDate):'......./......./.......'}</div></div>
 <div><b>๒. ความเห็นฝ่ายบุคคล</b><p style="min-height:12mm">${l.pOpinion||blank}</p>
-<div class="c">${l.checked?sg(S.sigs.personnel):sgH()}(ลงชื่อ)......................................<br>(${S.personnel})<br>${S.personnelPos}<br>วันที่ ${l.checked?thS(l.checkDate):'....../......./.......'}</div>
+<div class="c">${l.checked?sg(l.pSig||S.sigs.personnel):sgH()}(ลงชื่อ)......................................<br>(${S.personnel})<br>${S.personnelPos}<br>วันที่ ${l.checked?thS(l.checkDate):'....../......./.......'}</div>
 <p style="margin-top:4mm">[${ok?'✓':'&nbsp;'}] อนุญาต &nbsp; [${no?'✓':'&nbsp;'}] ไม่อนุญาต</p><p style="min-height:10mm">${l.dComment||blank}</p>
-<div class="c">${l.decided?sg(S.sigs.director):sgH()}(ลงชื่อ)......................................<br>(${S.director})<br>ผู้อำนวยการ${S.school}<br>วันที่ ${l.decided?thS(l.decDate):'......./......./.......'}</div></div></div></div>`}
+<div class="c">${l.decided?sg(l.dSig||S.sigs.director):sgH()}(ลงชื่อ)......................................<br>(${S.director})<br>ผู้อำนวยการ${S.school}<br>วันที่ ${l.decided?thS(l.decDate):'......./......./.......'}</div></div></div></div>`}
 function fname(l,S){return(S.fileFmt||DEFAULTS.fileFmt).replace('{type}',l.type).replace('{name}',l.name).replace('{date}',l.date)+'.pdf'}
 async function makePDF(l,S,all){
  await document.fonts.ready;const h=document.createElement('div');h.style.cssText='position:fixed;left:-9999px;top:0';h.innerHTML=docHTML(l,S,all);document.body.appendChild(h);
- const cv=await html2canvas(h.firstChild,{scale:2,useCORS:true,backgroundColor:'#fff'});h.remove();
+ const cv=await html2canvas(h.firstChild,{scale:innerWidth<700?1.5:2,useCORS:true,backgroundColor:'#fff'});h.remove();
  const img=cv.toDataURL('image/jpeg',.95),pdf=new jspdf.jsPDF({unit:'mm',format:'a4'});pdf.addImage(img,'JPEG',0,0,210,297);
  return{pdf,pages:[img],name:fname(l,S)}}
