@@ -7,10 +7,12 @@ function render(){
  const a=$('#app');
  if(!role){a.innerHTML=`<main class="home"><img src="assets/logo.png"><h1>ระบบลาออนไลน์ ${S.school}</h1><p>${S.area} — เลือกบทบาทเพื่อเข้าใช้งาน</p>
  <div class="roles"><button class="k2" onclick="login('ครู')">👩‍🏫 ครู</button><button class="k3" onclick="login('ธุรการ')">🗂️ ธุรการ</button><button class="k4" onclick="login('ผู้อำนวยการ')">🏫 ผู้อำนวยการ</button></div></main><div class="foot">${CREDIT}</div>`;return}
- const nav=[['dash','แดชบอร์ด'],...(role=='ครู'?[['new','สร้างใบลา']]:[]),['list','รายการลา'],['set','ตั้งค่า']];
- a.innerHTML=`<div class="top"><img src="assets/logo.png"><h1>ระบบลา ${S.school}<br><small style="font-size:15px;font-weight:400">${role}${me?' : '+me.n:''}</small></h1>
- <div class="nav">${nav.map(n=>`<button class="btn ${view==n[0]?'':'l'}" onclick="go('${n[0]}')">${n[1]}</button>`).join('')}<button class="btn r" onclick="role=null;me=null;render()">ออก</button></div></div>
- <main>${{dash,new:newForm,list,set:settings}[view]()}</main><div class="foot">${CREDIT}</div>`;
+ const nav=[['dash','แดชบอร์ด','📊','k1','สรุปการลาตามปีงบประมาณ ปีการศึกษา และภาคเรียน'],...(role=='ครู'?[['new','สร้างใบลา','➕','k2','กรอกใบลา เซ็นชื่อ แล้วตรวจตัวอย่างก่อนพิมพ์']]:[]),['list','รายการลา','🗂️','k3','ดูตัวอย่าง พิมพ์ หรือบันทึกเป็น PDF ย้อนหลังได้'],['set','ตั้งค่า','⚙️','k4','ข้อมูลโรงเรียน รายชื่อครู และลายเซ็น']];
+ const cur=nav.find(n=>n[0]==view);
+ a.innerHTML=`<div class="shell"><aside class="side"><div class="brand"><img src="assets/logo.png"><div><b>ระบบลาออนไลน์</b><small>${S.school}</small></div></div>
+ <nav>${nav.map(n=>`<button class="ni ${view==n[0]?'on':''}" onclick="go('${n[0]}')"><i class="${n[3]}">${n[2]}</i>${n[1]}</button>`).join('')}</nav>
+ <div class="sfoot"><small>บทบาท: ${role}${me?' · '+me.n:''}<br>ข้อมูลเก็บบน Cloudflare D1</small><button class="btn l" onclick="role=null;me=null;render()">ออกจากระบบ</button></div></aside>
+ <section class="content"><main><h2>${cur[1]}</h2><p class="sub">${cur[4]}</p>${{dash,new:newForm,list,set:settings}[view]()}<div class="foot">${CREDIT}</div></main></section></div>`;
  if(view=='new')initPad('pad');if(view=='set')['clerk','personnel','director'].forEach(k=>initPad('p_'+k,S.sigs[k]))}
 function go(v){view=v;render()}
 function login(r){role=r;view='dash';me=null;
@@ -26,7 +28,7 @@ function initPad(id,img){const c=document.getElementById(id);if(!c)return;c.widt
  c.onpointerdown=e=>{on=1;dirty=1;x.beginPath();x.moveTo(...p(e));c.setPointerCapture(e.pointerId)};c.onpointermove=e=>{if(on){x.lineTo(...p(e));x.stroke()}};c.onpointerup=()=>on=0;
  pads[id]={get:()=>dirty?c.toDataURL('image/png'):'',clear:()=>{x.clearRect(0,0,c.width,c.height);dirty=0}}}
 function newForm(){const saved=localStorage['sig_'+me.n]||'';
- return `<h2>สร้างใบลา</h2><div class="card k1"><div class="row"><div><label>ประเภทการลา</label><select id="f_type">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
+ return `<div class="card k1"><div class="row"><div><label>ประเภทการลา</label><select id="f_type">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
  <div><label>วันที่เขียน</label><input type="date" id="f_date" value="${today()}"></div><div><label>โทรศัพท์</label><input id="f_phone" value="${me.t}"></div></div>
  <div class="row"><div><label>ตั้งแต่วันที่</label><input type="date" id="f_start" value="${today()}" onchange="calcDays()"></div><div><label>ถึงวันที่</label><input type="date" id="f_end" value="${today()}" onchange="calcDays()"></div>
  <div><label>จำนวนวันทำการ</label><input type="number" id="f_days" value="1" min="0.5" step="0.5"></div></div>
@@ -50,7 +52,7 @@ async function doPDF(id){const l=byId(id);modal('<div class="mb"><p>กำลั
 const sc={'รอตรวจสอบ':'k3','รอพิจารณา':'k1','อนุญาต':'k2','ไม่อนุญาต':'k5'};
 const mine=()=>role=='ครู'?L.filter(x=>x.name==me.n):L;
 function list(){const a=[...mine()].sort((x,y)=>y.start.localeCompare(x.start));
- return `<h2>รายการลา</h2><div class="wrap"><table class="t"><tr><th>วันที่ลา</th><th>ชื่อ</th><th>ประเภท</th><th>วัน</th><th>สถานะ</th><th>จัดการ</th></tr>
+ return `<div class="wrap"><table class="t"><tr><th>วันที่ลา</th><th>ชื่อ</th><th>ประเภท</th><th>วัน</th><th>สถานะ</th><th>จัดการ</th></tr>
  ${a.map(l=>`<tr><td>${thS(l.start)}</td><td>${l.name}</td><td>${l.type}</td><td>${l.days}</td><td><span class="tag ${sc[l.status]}">${l.status}</span></td><td>
  <button class="btn s" onclick="preview(${l.id})">ดู/พิมพ์</button> <button class="btn s p" onclick="doPDF(${l.id})">PDF</button>
  ${role=='ธุรการ'&&!l.checked?`<button class="btn s g" onclick="checkM(${l.id})">ตรวจสอบ</button>`:''}${role=='ผู้อำนวยการ'&&l.checked&&!l.decided?`<button class="btn s o" onclick="decM(${l.id})">พิจารณา</button>`:''}
@@ -65,7 +67,7 @@ function setF(k,v){F[k]=k=='mode'?v:+v;render()}
 function dash(){const a=filt(mine()),days=a.reduce((s,l)=>s+ +l.days,0),sum=t=>a.filter(l=>l.type==t).reduce((s,l)=>s+ +l.days,0),max=Math.max(1,...TYPES.map(sum));
  const ys=[...new Set([F.year,...L.map(l=>F.mode=='ay'||F.mode=='term'?ay(l.start):fy(l.start))])].sort().reverse();
  const names=[...new Set(a.map(l=>l.name))];
- return `<h2>แดชบอร์ด</h2><div class="card"><div class="row"><div><label>สรุปตาม</label><select onchange="setF('mode',this.value)">${[['fy','ปีงบประมาณ'],['ay','ปีการศึกษา'],['term','ภาคเรียน'],['all','ทั้งหมด']].map(x=>`<option value="${x[0]}" ${F.mode==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div>
+ return `<div class="card"><div class="row"><div><label>สรุปตาม</label><select onchange="setF('mode',this.value)">${[['fy','ปีงบประมาณ'],['ay','ปีการศึกษา'],['term','ภาคเรียน'],['all','ทั้งหมด']].map(x=>`<option value="${x[0]}" ${F.mode==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select></div>
  ${F.mode!='all'?`<div><label>ปี พ.ศ.</label><select onchange="setF('year',this.value)">${ys.map(y=>`<option ${y==F.year?'selected':''}>${y}</option>`).join('')}</select></div>`:''}
  ${F.mode=='term'?`<div><label>ภาคเรียน</label><select onchange="setF('term',this.value)"><option value="1" ${F.term==1?'selected':''}>1 (พ.ค.–ต.ค.)</option><option value="2" ${F.term==2?'selected':''}>2 (พ.ย.–เม.ย.)</option></select></div>`:''}</div></div>
  <div class="grid"><div class="card k1"><div class="big">${a.length}</div>ใบลาทั้งหมด</div><div class="card k2"><div class="big">${days}</div>วันลารวม</div>
@@ -74,7 +76,7 @@ function dash(){const a=filt(mine()),days=a.reduce((s,l)=>s+ +l.days,0),sum=t=>a
  <h3>สรุปรายบุคคล</h3><div class="wrap"><table class="t"><tr><th>ชื่อ</th>${TYPES.map(t=>`<th>${t}</th>`).join('')}<th>รวม</th></tr>
  ${names.map(n=>{const c=TYPES.map(t=>a.filter(l=>l.name==n&&l.type==t).reduce((s,l)=>s+ +l.days,0));return`<tr><td>${n}</td>${c.map(v=>`<td>${v}</td>`).join('')}<td>${c.reduce((p,q)=>p+q,0)}</td></tr>`}).join('')||'<tr><td colspan=5>ไม่มีข้อมูลในช่วงนี้</td></tr>'}</table></div>`}
 function settings(){const f=(k,l)=>`<div><label>${l}</label><input id="s_${k}" value="${S[k]||''}"></div>`;
- return `<h2>ตั้งค่า</h2><div class="card k5"><div class="row">${f('school','ชื่อโรงเรียน')}${f('area','สังกัด')}${f('director','ผู้อำนวยการ')}${f('clerk','ผู้ตรวจสอบ (ธุรการ)')}${f('clerkPos','ตำแหน่งผู้ตรวจสอบ')}${f('personnel','ฝ่ายบุคคล')}${f('personnelPos','ตำแหน่งฝ่ายบุคคล')}${f('fileFmt','ชื่อไฟล์ PDF ({type} {name} {date})')}</div>
+ return `<div class="card k5"><div class="row">${f('school','ชื่อโรงเรียน')}${f('area','สังกัด')}${f('director','ผู้อำนวยการ')}${f('clerk','ผู้ตรวจสอบ (ธุรการ)')}${f('clerkPos','ตำแหน่งผู้ตรวจสอบ')}${f('personnel','ฝ่ายบุคคล')}${f('personnelPos','ตำแหน่งฝ่ายบุคคล')}${f('fileFmt','ชื่อไฟล์ PDF ({type} {name} {date})')}</div>
  <label>รายชื่อครู (บรรทัดละคน: ชื่อ|ตำแหน่ง|เบอร์โทร)</label><textarea id="s_teachers" rows="5">${S.teachers}</textarea>
  <div class="row">${[['clerk','ลายเซ็นผู้ตรวจสอบ'],['personnel','ลายเซ็นฝ่ายบุคคล'],['director','ลายเซ็นผู้อำนวยการ']].map(x=>`<div><label>${x[1]}</label><canvas class="sig" id="p_${x[0]}"></canvas><button class="btn s l" onclick="pads.p_${x[0]}.clear()">ล้าง</button></div>`).join('')}</div>
  <p><button class="btn g" onclick="saveS()">บันทึกการตั้งค่า</button></p></div>`}
