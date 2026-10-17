@@ -31,7 +31,8 @@ let sel=null,S={},L=[],role=null,me=null,view='dash',lf='all',unlocked=false,sta
 const SG={};
 function normS(){if(typeof S.teachers=='string')S.teachers=S.teachers.split('\n').filter(Boolean).map(x=>{const[n,p,t]=x.split('|');return{id:uid(),n:n.trim(),p:(p||'').trim(),t:(t||'').trim()}});
  S.teachers.forEach(t=>t.id=t.id||uid());S.sigs=S.sigs||{};T1=S.t1||5;T2=S.t2||11;Object.keys(S.sigs).forEach(k=>S.sigs[k]=nsg(S.sigs[k]))}
-async function init0(){S=await db.settings();normS();L=await db.leaves();render()}
+async function loadFonts(){for(const[k,w]of[['r','400'],['b','700']]){const u=S.fonts&&S.fonts[k];if(!u)continue;try{const f=new FontFace('TH Sarabun New',`url(${u})`,{weight:w});await f.load();document.fonts.add(f)}catch(e){}}}
+async function init0(){S=await db.settings();normS();await loadFonts();L=await db.leaves();render()}
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),2200)}
 /* ---------- โครงหน้า ---------- */
 function navFor(){const n=[];
@@ -181,10 +182,16 @@ async function delSel(){const ids=[...document.querySelectorAll('.dk:checked')].
 function tSys(){const mo=(k,v)=>`<select id="s_${k}">${MONTHS.map((m,i)=>`<option value="${i+1}" ${v==i+1?'selected':''}>${m}</option>`).join('')}</select>`;
  return `<div class="card k3"><h3>ปีการศึกษาและภาคเรียน</h3><div class="row"><div><label>ภาคเรียนที่ 1 เริ่มเดือน</label>${mo('t1',T1)}</div><div><label>ภาคเรียนที่ 2 เริ่มเดือน</label>${mo('t2',T2)}</div></div>
  <label>ข้อความความเห็นฝ่ายบุคคลเริ่มต้น</label><input id="s_defOp" value="${S.defOp||'เห็นควรอนุญาต'}"><p><button class="btn g" onclick="saveSys()">${ic('check')} บันทึก</button></p></div>
+ <div class="card k1" style="margin-top:14px"><h3>ฟอนต์ TH Sarabun New (ฝังในระบบ)</h3><p class="sub">อัปโหลดครั้งเดียว ระบบจะเก็บในฐานข้อมูลและโหลดให้ทุกเครื่อง (มือถือ แท็บเล็ต คอมพิวเตอร์) รวมถึงใน PDF</p>
+ <div class="sgc"><label class="btn ${S.fonts&&S.fonts.r?'g':'p'}">${ic('upload')} ตัวปกติ THSarabunNew.ttf ${S.fonts&&S.fonts.r?'✓':''}<input type="file" accept=".ttf,.otf,.woff,.woff2" hidden onchange="fontUp('r',this)"></label>
+ <label class="btn ${S.fonts&&S.fonts.b?'g':'p'}">${ic('upload')} ตัวหนา THSarabunNew-Bold.ttf ${S.fonts&&S.fonts.b?'✓':''}<input type="file" accept=".ttf,.otf,.woff,.woff2" hidden onchange="fontUp('b',this)"></label>
+ ${S.fonts&&(S.fonts.r||S.fonts.b)?`<button class="btn s r" onclick="delFont()">${ic('trash')} ลบฟอนต์</button>`:''}</div></div>
  <div class="card" style="margin-top:14px"><h3>สำรองและส่งออกข้อมูล</h3><div class="sgc"><button class="btn p" onclick="exportJSON()">${ic('download')} สำรองข้อมูล (JSON)</button><button class="btn" onclick="exportCSV()">${ic('file')} ส่งออกตารางลา (CSV)</button><label class="btn l">${ic('upload')} นำเข้าข้อมูลสำรอง<input type="file" accept=".json" hidden onchange="importJSON(this)"></label></div></div>`}
 async function saveSys(){const a=+$('#s_t1').value,b=+$('#s_t2').value;if(a>=b)return alert('เดือนเริ่มภาคเรียนที่ 2 ต้องอยู่หลังภาคเรียนที่ 1');S.t1=T1=a;S.t2=T2=b;S.defOp=$('#s_defOp').value;await persist();render()}
+function fontUp(k,inp){const f=inp.files[0];if(!f)return;if(f.size>900e3)return alert('ไฟล์ใหญ่เกินไป (เกิน 900 KB)');const r=new FileReader();r.onload=async()=>{S.fonts={...(S.fonts||{}),[k]:r.result};await persist('ฝังฟอนต์แล้ว');await loadFonts();render()};r.readAsDataURL(f)}
+async function delFont(){if(!confirm('ลบฟอนต์ที่ฝังไว้?'))return;S.fonts={};await persist('ลบแล้ว');location.reload()}
 function dl(txt,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
-function exportJSON(){dl(JSON.stringify({settings:{...S,pinHash:undefined,pinSet:undefined},leaves:L}),'สำรองระบบลา_'+today()+'.json','application/json')}
+function exportJSON(){dl(JSON.stringify({settings:{...S,pinHash:undefined,pinSet:undefined,fonts:undefined},leaves:L}),'สำรองระบบลา_'+today()+'.json','application/json')}
 function exportCSV(){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';dl('\ufeff'+['วันที่เขียน,ชื่อ,ตำแหน่ง,ประเภท,ตั้งแต่,ถึง,วัน,เหตุผล,สถานะ',...L.map(l=>[l.date,l.name,l.pos,l.type,l.start,l.end,l.days,l.reason,l.status].map(q).join(','))].join('\n'),'ตารางลา_'+today()+'.csv','text/csv')}
 function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!confirm('นำเข้าข้อมูลสำรอง? ข้อมูลที่ id ซ้ำจะถูกแทนที่'))return;
  if(d.settings){delete d.settings.pinHash;Object.assign(S,d.settings);normS();await persist()}for(const l of d.leaves||[])await db.save(l);L=await db.leaves();render();toast('นำเข้าแล้ว')}catch{alert('ไฟล์ไม่ถูกต้อง')}};r.readAsText(f)}

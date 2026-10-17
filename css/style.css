@@ -1,7 +1,5 @@
-@font-face{font-family:"TH Sarabun New";src:local("TH Sarabun New"),url(../fonts/THSarabunNew.ttf);font-weight:400}
-@font-face{font-family:"TH Sarabun New";src:local("TH Sarabun New Bold"),url(../fonts/THSarabunNew-Bold.ttf);font-weight:700}
 :root{--bg:#f4f7fb;--ink:#1e2a3a;--c1:#7aa7f0;--c2:#5fc9a4;--c3:#f2a65a;--c4:#a78bde;--c5:#ef8a9a;--line:#d9e2ee}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"TH Sarabun New",sans-serif;font-size:19px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"TH Sarabun New",Sarabun,sans-serif;font-size:19px}
 button,input,select,textarea{font:inherit}
 .top{display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:3px solid var(--c1);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 .top img{height:48px}.top h1{font-size:22px;margin:0;flex:1}.nav{display:flex;gap:6px;flex-wrap:wrap}
@@ -29,7 +27,7 @@ canvas.sig{border:2px dashed #9fb3cf;border-radius:10px;background:#fff;width:10
 .pv{overflow:hidden}.pv>.page{transform-origin:0 0}
 .pdfimg{width:100%;border:1px solid var(--line);margin-bottom:10px}
 .foot{text-align:center;padding:20px;color:#5b6b80;font-size:16px}
-.page{width:210mm;height:297mm;padding:15mm 20mm 20mm 30mm;background:#fff;color:#000;font:16pt/1 "TH Sarabun New",sans-serif;position:relative;overflow:hidden}
+.page{width:210mm;height:297mm;padding:15mm 20mm 20mm 30mm;background:#fff;color:#000;font:16pt/1 "TH Sarabun New",Sarabun,sans-serif;position:relative;overflow:hidden}
 .page p{margin:0 0 .15em}.page .in{text-indent:25mm;text-align:justify}.page .logo{display:block;height:26mm;margin:0 auto 4mm}
 .page .t1{text-align:center;font-weight:700;font-size:18pt;margin-bottom:3mm}.page .r{text-align:right;margin-bottom:2mm}
 .page .sg{height:11mm;display:block;margin:0 auto -2mm}.page .c{text-align:center}
@@ -40,7 +38,7 @@ canvas.sig{border:2px dashed #9fb3cf;border-radius:10px;background:#fff;width:10
 #printRoot{display:none}
 @media print{@page{size:A4;margin:0}body>*{display:none!important}body>#printRoot{display:block!important}#printRoot .page{transform:none!important}}
 /* ===== โครงหน้าแบบ Sidebar (UI) ===== */
-:root{--ui:"Noto Sans Thai","TH Sarabun New",sans-serif;--shadow:0 8px 28px #5b6cf322}
+:root{--ui:"Noto Sans Thai","TH Sarabun New",Sarabun,sans-serif;--shadow:0 8px 28px #5b6cf322}
 body{font:15px/1.5 var(--ui);background:#eef0ff}
 .shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
 .side{background:#fff;padding:18px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;border-right:1px solid #e3e6fb}
@@ -100,7 +98,7 @@ table.t{border-radius:18px;box-shadow:var(--shadow)}.t th{background:#e6eaff;col
 .empty{text-align:center;padding:40px}.empty .ic{width:48px;height:48px;color:#34d399}
 .lockc{max-width:420px;margin:30px auto;text-align:center}.lockc .ic{width:44px;height:44px;color:#7c4dff}
 .sged{background:#f7f8ff;border-radius:16px;padding:12px;margin-top:6px;max-width:520px}
-.sgp{background:#fff;border:1px dashed #b9c3ee;border-radius:12px;height:34mm;max-width:90mm;position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font:16pt "TH Sarabun New",sans-serif;color:#000;overflow:hidden;padding-bottom:3mm;margin-bottom:8px}
+.sgp{background:#fff;border:1px dashed #b9c3ee;border-radius:12px;height:34mm;max-width:90mm;position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font:16pt "TH Sarabun New",Sarabun,sans-serif;color:#000;overflow:hidden;padding-bottom:3mm;margin-bottom:8px}
 .sgw{height:9mm;width:60mm;position:relative}.sgw img{position:absolute;transform:translateX(-50%);max-width:none}.sgp .sgw{margin-bottom:-1mm}
 .sgc{display:flex;gap:6px;flex-wrap:wrap}.rg{display:grid;grid-template-columns:80px 1fr;align-items:center;gap:8px;margin:4px 0}.rg input{padding:0}
 .srch{display:flex;align-items:center;gap:8px;background:#f7f8ff;border-radius:12px;padding:0 12px}.srch input{border:0;background:none}

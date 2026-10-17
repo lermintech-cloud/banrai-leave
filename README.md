@@ -4,7 +4,7 @@
 index.html · css/style.css · js/{config,api,doc,app}.js · functions/api/[[path]].js (API) · schema.sql (ฐานข้อมูล D1) · assets/logo.png · fonts/
 
 ## 1) ฟอนต์ TH Sarabun New (ฝังในระบบ)
-ดาวน์โหลดฟอนต์ (ฟรีจาก SIPA) แล้ววางในโฟลเดอร์ fonts/ ชื่อ
+
 `THSarabunNew.ttf` และ `THSarabunNew-Bold.ttf` — ระบบจะใช้ฟอนต์นี้ทั้งบนจอ มือถือ และ PDF
 
 ## 2) อัปโหลดขึ้น GitHub
@@ -33,3 +33,10 @@ index.html · css/style.css · js/{config,api,doc,app}.js · functions/api/[[pat
 - หน้าสร้างใบลามีตัวอย่างเอกสารต่อด้านล่างและเปลี่ยนตามที่กรอกทันที
 - ลายเซ็นครู/ธุรการ/ฝ่ายบุคคล/ผู้อำนวยการแทรกอัตโนมัติ และบันทึกติดกับใบลานั้น (แก้ลายเซ็นภายหลังไม่กระทบเอกสารเก่า)
 - ปรับให้ใช้งานได้ทั้งมือถือ แท็บเล็ต และคอมพิวเตอร์
+
+## ฟอนต์ TH Sarabun New บนมือถือ (v5)
+ไม่ต้องวางไฟล์ในโฟลเดอร์ fonts/ อีกต่อไป: เข้า ตั้งค่า → ระบบและสำรองข้อมูล → "ฟอนต์ TH Sarabun New" แล้วอัปโหลด THSarabunNew.ttf และ THSarabunNew-Bold.ttf ครั้งเดียว ระบบเก็บในฐานข้อมูลและโหลดให้ทุกเครื่องและ PDF
+ก่อนอัปโหลด ระบบใช้ฟอนต์ Sarabun (Google Fonts) สำรอง ซึ่งคล้ายแต่ไม่เหมือน TH Sarabun New 100%
+
+## ฟอนต์ฝังในโค้ดแล้ว (v5.1)
+css/fonts.css ฝัง TH Sarabun New (ปกติ+หนา) แบบ base64 แล้ว ใช้ได้ทุกเครื่องโดยไม่ต้องติดตั้งหรืออัปโหลดเพิ่ม (ไฟล์ต้นฉบับอยู่ใน fonts/)
