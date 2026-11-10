@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เช็คชื่อ - ระบบธุรการชั้นเรียน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .att-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .att-toolbar input[type="date"] { flex: 1; min-width: 160px; padding: 0.5rem 0.75rem; border: 1.5px solid #ddd; border-radius: 8px; font-size: 0.95rem; font-family: inherit; }
+    .student-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .student-row { background: #fff; border-radius: 10px; padding: 0.75rem 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .student-info { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .student-num { color: #888; font-size: 0.85rem; margin-right: 0.5rem; }
+    .status-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+    .status-btn { min-height:44px; flex:1; padding: 0.55rem 0.65rem; border: 2px solid transparent; border-radius: 20px; font-size: 0.9rem; font-family: inherit; cursor: pointer; font-weight: 500; transition: all 0.15s; background: #f5f5f5; color: #666; }
+    .status-btn:hover { opacity: 0.85; }
+    .status-btn.active-มา { background: #e8f5e9; border-color: #4caf50; color: #2e7d32; }
+    .status-btn.active-ป { background: #fff8e1; border-color: #ffc107; color: #f57f17; }
+    .status-btn.active-ล { background: #e3f2fd; border-color: #2196f3; color: #1565c0; }
+    .status-btn.active-ข { background: #ffeaea; border-color: #f44336; color: #c62828; }
+    .note-input { min-height:44px; flex: 1; padding: 0.3rem 0.6rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: inherit; min-width: 100px; }
+    .save-bar { position: fixed; bottom: 60px; left: 0; right: 0; padding: 0.75rem 1rem; background: #fff; box-shadow: 0 -2px 8px rgba(0,0,0,0.12); display: flex; gap: 0.5rem; z-index: 90; }
+    @media (min-width: 768px) { .save-bar { left: 240px; bottom: 0; } }
+    .save-bar .btn { flex: 1; padding: 0.75rem; font-size: 1rem; }
+    @media(max-width:767px) { .student-list { gap:12px; } .student-info { font-size:1rem; } .status-buttons { gap:7px; } .note-input { flex-basis:100%; width:100%; } .att-toolbar { border-radius:16px; } .save-bar { bottom:60px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); } .save-bar .btn { min-height:50px; border-radius:14px; } }
+    .summary-bar { background: #f8f9fa; border-radius: 8px; padding: 0.5rem 1rem; display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; font-size: 0.875rem; }
+    .summary-bar span { font-weight: 600; }
+    .s-มา { color: #2e7d32; }
+    .s-ป { color: #f57f17; }
+    .s-ล { color: #1565c0; }
+    .s-ข { color: #c62828; }
+    .select-all-bar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .select-all-bar button { font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+  </style>
+  <link rel="stylesheet" href="/css/premium-theme.css">
+</head>
+<body class="app-body">
+  <div id="app-nav"></div>
+  <main class="app-main">
+    <div class="container">
+      <h2 class="page-title">เช็คชื่อนักเรียน</h2>
+
+      <div id="alertBox"></div>
+
+      <div class="att-toolbar card card-body mb-2">
+        <label style="font-weight:600">วันที่</label>
+        <input type="date" id="dateInput">
+        <button class="btn btn-outline" onclick="loadAttendance()">โหลด</button>
+      </div>
+
+      <div class="summary-bar" id="summaryBar" style="display:none">
+        มา: <span id="sumPresent" class="s-มา">0</span> |
+        ป่วย: <span id="sumSick" class="s-ป">0</span> |
+        ลา: <span id="sumLeave" class="s-ล">0</span> |
+        ขาด: <span id="sumAbsent" class="s-ข">0</span> |
+        ยังไม่เช็ค: <span id="sumNone">0</span>
+      </div>
+
+      <div class="select-all-bar" id="selectAllBar" style="display:none">
+        <button class="btn btn-sm btn-outline" onclick="selectAll('มา')"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle class="f" cx="12" cy="12" r="8.5"/><path d="m8.4 12.3 2.6 2.6 4.6-5.2"/></svg>มาทั้งหมด</button>
+        <button class="btn btn-sm btn-outline" onclick="clearAll()">ล้างทั้งหมด</button>
+      </div>
+
+      <div id="studentList" class="student-list"></div>
+
+      <div style="height: 80px"></div>
+    </div>
+  </main>
+
+  <div class="save-bar" id="saveBar" style="display:none">
+    <button class="btn btn-primary" onclick="saveAttendance()"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v10.5M7.8 10.8l4.2 4.2 4.2-4.2"/><path d="M5 19.5h14"/></svg>บันทึกการมาเรียน</button>
+  </div>
+
+  <script type="module">
+    import { checkAuth, getCurrentClassroom } from '/js/auth.js';
+    import { api } from '/js/api.js';
+    import { today, showAlert } from '/js/utils.js';
+    import { initNav } from '/js/nav.js';
+
+    let classroom = null;
+    let records = {}; // { student_id: { status, note } }
+
+    async function init() {
+      await checkAuth();
+      classroom = getCurrentClassroom();
+      if (!classroom) { alert('กรุณาเลือกห้องเรียนก่อน'); window.location.href = '/dashboard.html'; return; }
+      initNav('attendance');
+      document.getElementById('dateInput').value = today();
+      loadAttendance();
+    }
+
+    window.loadAttendance = async function() {
+      const date = document.getElementById('dateInput').value;
+      if (!date) return;
+
+      try {
+        const data = await api.getAttendanceByDate(classroom.id, date);
+        records = {};
+        data.forEach(s => {
+          records[s.id || s.student_id] = { status: s.status || '', note: s.note || '' };
+        });
+
+        renderStudents(data, date);
+        updateSummary(data);
+        document.getElementById('summaryBar').style.display = 'flex';
+        document.getElementById('selectAllBar').style.display = 'flex';
+        document.getElementById('saveBar').style.display = 'flex';
+      } catch (e) {
+        showAlert(document.getElementById('alertBox'), 'โหลดข้อมูลไม่ได้: ' + e.message, 'danger');
+      }
+    };
+
+    function renderStudents(students, date) {
+      const list = document.getElementById('studentList');
+      list.innerHTML = '';
+
+      students.forEach((s, i) => {
+        const sid = s.id || s.student_id;
+        const rec = records[sid] || { status: '', note: '' };
+        const div = document.createElement('div');
+        div.className = 'student-row';
+        div.id = `row-${sid}`;
+        div.innerHTML = `
+          <div class="student-info">
+            <span class="student-num">${i+1}.</span>
+            ${s.prefix || ''}${s.first_name} ${s.last_name}
+          </div>
+          <div class="status-buttons">
+            ${['มา','ป','ล','ข'].map(st => `
+              <button class="status-btn ${rec.status === st ? 'active-'+st : ''}"
+                onclick="setStatus(${sid}, '${st}', this)">
+                ${st === 'มา' ? '<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle class="f" cx="12" cy="12" r="8.5"/><path d="m8.4 12.3 2.6 2.6 4.6-5.2"/></svg>มา' : st === 'ป' ? '<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="f" d="M10 14.6V5.6a2 2 0 0 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 10v5.5"/></svg>ป่วย' : st === 'ล' ? '<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="f" d="M7 3.5h7l4.5 4.5v11A1.5 1.5 0 0 1 17 20.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5z"/><path d="M14 3.5V8h4.5M9 13h6M9 16.5h4"/></svg>ลา' : '<svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle class="f" cx="12" cy="12" r="8.5"/><path d="m9.2 9.2 5.6 5.6M14.8 9.2l-5.6 5.6"/></svg>ขาด'}
+              </button>
+            `).join('')}
+            <input type="text" class="note-input" placeholder="หมายเหตุ"
+              value="${rec.note || ''}"
+              oninput="setNote(${sid}, this.value)"
+              id="note-${sid}">
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    window.setStatus = function(sid, status, btn) {
+      if (!records[sid]) records[sid] = { status: '', note: '' };
+      records[sid].status = status;
+
+      const row = document.getElementById(`row-${sid}`);
+      row.querySelectorAll('.status-btn').forEach(b => {
+        ['มา','ป','ล','ข'].forEach(s => b.classList.remove('active-'+s));
+      });
+      btn.classList.add('active-'+status);
+      updateSummaryFromRecords();
+    };
+
+    window.setNote = function(sid, note) {
+      if (!records[sid]) records[sid] = { status: '', note: '' };
+      records[sid].note = note;
+    };
+
+    window.selectAll = function(status) {
+      Object.keys(records).forEach(sid => {
+        records[sid].status = status;
+        const row = document.getElementById(`row-${sid}`);
+        if (row) {
+          row.querySelectorAll('.status-btn').forEach(b => {
+            ['มา','ป','ล','ข'].forEach(s => b.classList.remove('active-'+s));
+          });
+          const btn = row.querySelector(`.status-btn:nth-child(${['มา','ป','ล','ข'].indexOf(status)+1})`);
+          if (btn) btn.classList.add('active-'+status);
+        }
+      });
+      updateSummaryFromRecords();
+    };
+
+    window.clearAll = function() {
+      Object.keys(records).forEach(sid => { records[sid].status = ''; });
+      document.querySelectorAll('.status-btn').forEach(b => {
+        ['มา','ป','ล','ข'].forEach(s => b.classList.remove('active-'+s));
+      });
+      updateSummaryFromRecords();
+    };
+
+    function updateSummary(data) {
+      const r = data.map(s => ({ status: records[s.id || s.student_id]?.status || '' }));
+      updateSummaryFromList(r);
+    }
+
+    function updateSummaryFromRecords() {
+      const r = Object.values(records);
+      updateSummaryFromList(r);
+    }
+
+    function updateSummaryFromList(r) {
+      document.getElementById('sumPresent').textContent = r.filter(x => x.status === 'มา').length;
+      document.getElementById('sumSick').textContent = r.filter(x => x.status === 'ป').length;
+      document.getElementById('sumLeave').textContent = r.filter(x => x.status === 'ล').length;
+      document.getElementById('sumAbsent').textContent = r.filter(x => x.status === 'ข').length;
+      document.getElementById('sumNone').textContent = r.filter(x => !x.status).length;
+    }
+
+    window.saveAttendance = async function() {
+      const date = document.getElementById('dateInput').value;
+      const recordsArr = Object.entries(records)
+        .map(([sid, r]) => ({ student_id: parseInt(sid), status: r.status || '', note: r.note || null }));
+
+      if (recordsArr.every(r => !r.status)) {
+        showAlert(document.getElementById('alertBox'), 'ยังไม่มีสถานะที่เลือก หากต้องการล้างข้อมูลเดิมให้กดยืนยันบันทึกอีกครั้ง', 'warning');
+        if (!confirm('ต้องการล้างสถานะการมาเรียนของนักเรียนทุกคนในวันที่เลือกใช่หรือไม่?')) return;
+      }
+
+      try {
+        await api.saveAttendance(classroom.id, date, recordsArr);
+        showAlert(document.getElementById('alertBox'), `บันทึกการมาเรียนวันที่ ${date} สำเร็จ` , 'success');
+      } catch (e) {
+        showAlert(document.getElementById('alertBox'), 'บันทึกไม่สำเร็จ: ' + e.message, 'danger');
+      }
+    };
+
+    init();
+  </script>
+</body>
+</html>

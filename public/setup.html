@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตั้งค่าระบบครั้งแรก - โรงเรียนบ้านไร่</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .setup-wrapper { width: 100%; max-width: 480px; padding: 1.5rem; }
+    .setup-card { background: #fff; border-radius: 16px; padding: 2.5rem 2rem; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    .setup-header { text-align: center; margin-bottom: 1.5rem; }
+    .setup-header .icon { font-size: 3rem; }
+    .setup-header h1 { font-size: 1.3rem; font-weight: 700; color: #1a73e8; }
+    .setup-header p { font-size: 0.85rem; color: #666; }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 500; color: #444; margin-bottom: 0.4rem; }
+    .form-group input { width: 100%; padding: 0.7rem 1rem; border: 1.5px solid #ddd; border-radius: 8px; font-size: 1rem; font-family: inherit; box-sizing: border-box; }
+    .form-group input:focus { outline: none; border-color: #1a73e8; }
+    .form-group small { color: #888; font-size: 0.8rem; }
+    .btn-setup { width: 100%; padding: 0.8rem; background: #1a73e8; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; font-family: inherit; cursor: pointer; }
+    .btn-setup:disabled { background: #9fb8e8; }
+    .msg { border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.875rem; display: none; }
+    .msg.error { background: #ffeaea; border: 1px solid #f44336; color: #c62828; }
+    .msg.success { background: #e8f5e9; border: 1px solid #4caf50; color: #2e7d32; }
+    .already-setup { text-align: center; padding: 2rem; }
+  </style>
+  <link rel="stylesheet" href="/css/premium-theme.css">
+</head>
+<body>
+  <div class="setup-wrapper">
+    <div class="setup-card">
+      <div class="setup-header">
+        <div class="icon"><svg class="ic" viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle class="f" cx="15" cy="7" r="2.2"/><circle class="f" cx="9" cy="17" r="2.2"/></svg></div>
+        <h1>ตั้งค่าระบบครั้งแรก</h1>
+        <p>สร้างบัญชีผู้ดูแลระบบ (admin)</p>
+      </div>
+      <div id="msgBox" class="msg"></div>
+      <div id="setupForm">
+        <div class="form-group">
+          <label>ชื่อ-สกุล ผู้ดูแลระบบ</label>
+          <input type="text" id="fullName" placeholder="เช่น นายชโยทิต น้ำดอกไม้">
+        </div>
+        <div class="form-group">
+          <label>ชื่อผู้ใช้ (username)</label>
+          <input type="text" id="username" placeholder="เช่น admin">
+        </div>
+        <div class="form-group">
+          <label>รหัสผ่าน</label>
+          <input type="password" id="password" placeholder="อย่างน้อย 8 ตัวอักษร">
+          <small>รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร</small>
+        </div>
+        <div class="form-group">
+          <label>ยืนยันรหัสผ่าน</label>
+          <input type="password" id="confirmPassword" placeholder="กรอกรหัสผ่านอีกครั้ง">
+        </div>
+        <button class="btn-setup" id="setupBtn" onclick="doSetup()">สร้างบัญชี Admin</button>
+      </div>
+      <div id="alreadySetup" class="already-setup" style="display:none">
+        <p>ระบบได้รับการตั้งค่าแล้ว</p>
+        <a href="/">กลับหน้าล็อกอิน</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function checkSetup() {
+      const res = await fetch('/api/setup');
+      const data = await res.json();
+      if (!data.needs_setup) {
+        document.getElementById('setupForm').style.display = 'none';
+        document.getElementById('alreadySetup').style.display = 'block';
+      }
+    }
+    checkSetup();
+
+    async function doSetup() {
+      const btn = document.getElementById('setupBtn');
+      const msg = document.getElementById('msgBox');
+      msg.style.display = 'none';
+
+      const fullName = document.getElementById('fullName').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirmPassword').value;
+
+      if (!username || !password) { showMsg('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', 'error'); return; }
+      if (password.length < 8) { showMsg('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', 'error'); return; }
+      if (password !== confirm) { showMsg('รหัสผ่านไม่ตรงกัน', 'error'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'กำลังสร้าง...';
+
+      try {
+        const res = await fetch('/api/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, full_name: fullName })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMsg('สร้างบัญชี admin สำเร็จ กำลังไปหน้าล็อกอิน...', 'success');
+          setTimeout(() => window.location.href = '/', 2000);
+        } else {
+          showMsg(data.error || 'เกิดข้อผิดพลาด', 'error');
+        }
+      } catch (e) {
+        showMsg('ไม่สามารถเชื่อมต่อได้', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'สร้างบัญชี Admin';
+      }
+    }
+
+    function showMsg(text, type) {
+      const msg = document.getElementById('msgBox');
+      msg.textContent = text;
+      msg.className = `msg ${type}`;
+      msg.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

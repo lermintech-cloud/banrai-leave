@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สรุปเวลาเรียน - ระบบธุรการชั้นเรียน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .report-toolbar { display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+    .report-table th, .report-table td { text-align:center; white-space:nowrap; font-size:0.85rem; }
+    .report-table th:nth-child(2), .report-table td:nth-child(2) { text-align:left; min-width:140px; }
+    .month-group th { background:#e3f2fd; }
+    .pass-badge { background:#e8f5e9; color:#2e7d32; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.8rem; font-weight:600; }
+    .fail-badge { background:#ffeaea; color:#c62828; padding:0.15rem 0.5rem; border-radius:10px; font-size:0.8rem; font-weight:600; }
+    @media print { .app-header, .sidebar, .bottom-nav, .report-toolbar, #app-nav { display:none!important; } .app-main { margin:0!important; padding:0!important; } }
+  </style>
+  <link rel="stylesheet" href="/css/premium-theme.css">
+  <link rel="stylesheet" href="/css/report.css">
+</head>
+<body class="app-body">
+  <div id="app-nav"></div>
+  <main class="app-main">
+    <div class="container">
+      <div class="page-header">
+        <h2 class="page-title">สรุปเวลาเรียน</h2>
+        <button class="btn btn-outline" onclick="printReport()"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M7.5 9V4.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1V9"/><rect class="f" x="3.5" y="9" width="17" height="8.5" rx="2.6"/><path d="M7.5 14h9v6.5h-9z"/></svg>พิมพ์ / PDF</button>
+      </div>
+
+      <div class="report-toolbar card card-body mb-2">
+        <div>
+          <label class="form-label">ปีการศึกษา (พ.ศ.)</label>
+          <input type="number" id="ayInput" class="form-input" style="width:120px" value="2569" min="2560" max="2580">
+        </div>
+        <div>
+          <label class="form-label">แสดง</label>
+          <select id="typeSelect" class="form-select" style="width:160px">
+            <option value="1">เทอม 1 (พ.ค.-ก.ย.)</option>
+            <option value="2">เทอม 2 (ต.ค.-มี.ค.)</option>
+            <option value="annual">ทั้งปีการศึกษา</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="loadReport()">แสดงรายงาน</button>
+      </div>
+
+      <div id="alertBox"></div>
+      <div id="reportContainer">
+        <div class="text-center text-muted py-5">กดปุ่ม "แสดงรายงาน" เพื่อดูข้อมูล</div>
+      </div>
+    </div>
+  </main>
+  <div class="bottom-spacer"></div>
+
+  <script type="module">
+    import { checkAuth, getCurrentClassroom } from '/js/auth.js';
+    import { api } from '/js/api.js';
+    import { thaiMonthShort, showAlert, escHtml } from '/js/utils.js';
+    import { initNav } from '/js/nav.js';
+    import { openReport, getReportContext, esc, studentName } from '/js/report.js';
+
+    let classroom = null;
+    let last = null;          // ข้อมูลรายงานล่าสุดที่โหลดแล้ว (ใช้ทั้งหน้าจอและเอกสารพิมพ์)
+    const PASS_RATE = 80;     // เกณฑ์ผ่าน: เวลาเรียนไม่น้อยกว่าร้อยละ 80
+
+    async function init() {
+      await checkAuth();
+      classroom = getCurrentClassroom();
+      if (!classroom) { alert('กรุณาเลือกห้องเรียน'); window.location.href = '/dashboard.html'; return; }
+      initNav('attendance-report');
+    }
+
+    // รวมข้อมูลรายคน (ใช้ซ้ำทั้งหน้าจอและรายงาน)
+    function summarize(records, school_days) {
+      const studentMap = {}; const monthSet = new Set();
+      records.forEach(r => {
+        if (!r.month) return;
+        monthSet.add(r.month);
+        if (!studentMap[r.student_id]) {
+          studentMap[r.student_id] = { id: r.student_id, prefix: r.prefix, first_name: r.first_name, last_name: r.last_name, months: {} };
+        }
+        studentMap[r.student_id].months[r.month] = r;
+      });
+      const months = Array.from(monthSet).sort();
+      const sdMap = {}; (school_days || []).forEach(sd => { sdMap[sd.month] = sd.days; });
+      const totalSchoolDays = Object.values(sdMap).reduce((a, b) => a + b, 0);
+      const students = Object.values(studentMap).map(s => {
+        const t = { present: 0, sick: 0, leave: 0, absent: 0 };
+        months.forEach(m => { const x = s.months[m] || {}; t.present += x.present || 0; t.sick += x.sick || 0; t.leave += x.leave || 0; t.absent += x.absent || 0; });
+        const pct = totalSchoolDays > 0 ? (t.present / totalSchoolDays) * 100 : null;
+        return { ...s, ...t, pct, passed: pct !== null && pct >= PASS_RATE };
+      });
+      return { months, students, sdMap, totalSchoolDays };
+    }
+
+    window.loadReport = async function() {
+      const ay = document.getElementById('ayInput').value;
+      const type = document.getElementById('typeSelect').value;
+      const container = document.getElementById('reportContainer');
+      container.innerHTML = '<div class="text-center py-4"><div class="spinner"></div> กำลังโหลด...</div>';
+      try {
+        const data = type === 'annual'
+          ? await api.getAnnualReport(classroom.id, ay)
+          : await api.getAttendanceReport(classroom.id, type, ay);
+        const { records, school_days } = data;
+        if (!records || records.length === 0) {
+          last = null;
+          container.innerHTML = '<div class="text-center text-muted py-5">ไม่มีข้อมูล</div>';
+          return;
+        }
+        const sum = summarize(records, school_days);
+        last = { ...sum, ay, type };
+        const { months, students, sdMap, totalSchoolDays } = sum;
+
+        let html = `
+          <div class="card">
+            <div class="card-header">
+              ${type === 'annual' ? 'สรุปเวลาเรียนรายปี' : `สรุปเวลาเรียนภาคเรียนที่ ${type}`}
+              — ชั้น ${classroom.level} ปีการศึกษา ${ay}
+              ${totalSchoolDays ? `(วันเรียนทั้งหมด ${totalSchoolDays} วัน)` : ''}
+            </div>
+            <div class="card-body p-0" style="overflow-x:auto">
+              <table class="table report-table mb-0">
+                <thead>
+                  <tr>
+                    <th rowspan="2">#</th>
+                    <th rowspan="2">ชื่อ-สกุล</th>
+                    ${months.map(m => { const mo = m.split('-')[1];
+                      return `<th colspan="4" class="month-group">${thaiMonthShort(mo)}<br><small>${sdMap[m] ? sdMap[m] + 'วัน' : ''}</small></th>`; }).join('')}
+                    <th rowspan="2">รวมมา</th><th rowspan="2">ป+ล</th><th rowspan="2">ขาด</th><th rowspan="2">ร้อยละ</th><th rowspan="2">ผล</th>
+                  </tr>
+                  <tr>${months.map(() => '<th>มา</th><th>ป</th><th>ล</th><th>ข</th>').join('')}</tr>
+                </thead>
+                <tbody>`;
+        students.forEach((s, i) => {
+          html += `<tr>
+            <td>${i + 1}</td>
+            <td style="text-align:left">${escHtml(s.prefix || '')}${escHtml(s.first_name)} ${escHtml(s.last_name)}</td>
+            ${months.map(m => { const mo = s.months[m] || {};
+              return `<td>${mo.present || 0}</td><td>${mo.sick || 0}</td><td>${mo.leave || 0}</td><td>${mo.absent || 0}</td>`; }).join('')}
+            <td><strong>${s.present}</strong></td>
+            <td>${s.sick + s.leave}</td>
+            <td>${s.absent}</td>
+            <td>${s.pct === null ? '-' : s.pct.toFixed(1)}</td>
+            <td>${s.pct === null ? '-' : (s.passed ? '<span class="pass-badge">ผ่าน</span>' : '<span class="fail-badge">ไม่ผ่าน</span>')}</td>
+          </tr>`;
+        });
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+      } catch (e) {
+        last = null;
+        showAlert(document.getElementById('alertBox'), 'โหลดไม่ได้: ' + e.message, 'danger');
+        container.innerHTML = '';
+      }
+    };
+
+    // ── เอกสารพิมพ์ A4 ──
+    window.printReport = async function() {
+      if (!last) { showAlert(document.getElementById('alertBox'), 'กรุณากด “แสดงรายงาน” ก่อนพิมพ์', 'warning'); return; }
+      const ctx = await getReportContext();
+      const { months, students, sdMap, totalSchoolDays, ay, type } = last;
+      const term = type === 'annual' ? 'ตลอดปีการศึกษา' : `ภาคเรียนที่ ${type}`;
+      const passN = students.filter(s => s.passed).length;
+      const noData = totalSchoolDays === 0;
+
+      openReport({
+        key: 'attendance',
+        title: 'รายงานสรุปเวลาเรียนของนักเรียน',
+        subtitle: `ชั้น${classroom.level} ${term} ปีการศึกษา ${ay}`,
+        orientation: 'landscape',
+        fileName: `สรุปเวลาเรียน_${classroom.level}_${type === 'annual' ? 'ทั้งปี' : 'เทอม' + type}_${ay}`,
+        info: [`จำนวนนักเรียน ${students.length} คน`, totalSchoolDays ? `วันเรียนทั้งหมด ${totalSchoolDays} วัน` : 'ยังไม่ได้กำหนดวันเรียน'],
+        // เลือกรูปแบบตารางตามพื้นที่จริง: ถ้ากว้างไม่พอสำหรับ มา/ป/ล/ข ทุกเดือน ให้แสดงเฉพาะ “มา” รายเดือน
+        table: (c) => {
+          const full = c.contentW >= 240 && months.length <= 6;
+          const mLabel = m => `${thaiMonthShort(m.split('-')[1])}${sdMap[m] ? `<br>(${sdMap[m]})` : ''}`;
+          const tailHead = '<th rowspan="@R">รวมมา</th><th rowspan="@R">ป+ล</th><th rowspan="@R">ขาด</th><th rowspan="@R">ร้อยละ</th><th rowspan="@R">ผล</th>';
+          const tailCols = '<col style="width:13mm"><col style="width:11mm"><col style="width:11mm"><col style="width:14mm"><col style="width:17mm">';
+          const tailCells = s => `<td class="bold">${s.present}</td><td>${s.sick + s.leave}</td><td>${s.absent}</td><td>${s.pct === null ? '-' : s.pct.toFixed(1)}</td><td class="res">${s.pct === null ? '-' : (s.passed ? 'ผ่าน' : 'ไม่ผ่าน')}</td>`;
+          const nameW = c.orient === 'landscape' ? 50 : 38;
+          if (full) {
+            return {
+              cls: 'dense',
+              colgroup: `<colgroup><col style="width:8mm"><col style="width:${nameW}mm">${months.map(() => '<col><col><col><col>').join('')}${tailCols}</colgroup>`,
+              head: `<tr><th rowspan="2">ที่</th><th rowspan="2">ชื่อ-สกุล</th>${months.map(m => `<th colspan="4">${mLabel(m)}</th>`).join('')}${tailHead.replaceAll('@R', 2)}</tr>
+                     <tr>${months.map(() => '<th>มา</th><th>ป</th><th>ล</th><th>ข</th>').join('')}</tr>`,
+              rows: students.map((s, i) => `<tr class="rpt-row"><td>${i + 1}</td><td class="l">${studentName(s)}</td>${months.map(m => { const x = s.months[m] || {}; return `<td>${x.present || 0}</td><td>${x.sick || 0}</td><td>${x.leave || 0}</td><td>${x.absent || 0}</td>`; }).join('')}${tailCells(s)}</tr>`),
+            };
+          }
+          return {
+            cls: months.length > 8 ? 'dense' : '',
+            colgroup: `<colgroup><col style="width:8mm"><col style="width:${nameW}mm">${months.map(() => '<col>').join('')}${tailCols}</colgroup>`,
+            head: `<tr><th>ที่</th><th>ชื่อ-สกุล</th>${months.map(m => `<th>${mLabel(m)}</th>`).join('')}${tailHead.replaceAll(' rowspan="@R"', '')}</tr>`,
+            rows: students.map((s, i) => `<tr class="rpt-row"><td>${i + 1}</td><td class="l">${studentName(s)}</td>${months.map(m => `<td>${(s.months[m] || {}).present || 0}</td>`).join('')}${tailCells(s)}</tr>`),
+          };
+        },
+        after: (c) => `
+          <div class="rpt-summary"><b>สรุป</b> นักเรียนทั้งหมด ${students.length} คน
+            ${noData ? '' : ` · ผ่านเกณฑ์ ${passN} คน · ไม่ผ่านเกณฑ์ ${students.length - passN} คน`}</div>
+          <div class="rpt-note"><b>หมายเหตุ</b> มา = มาเรียน, ป = ลาป่วย, ล = ลากิจ, ข = ขาดเรียน; ตัวเลขในวงเล็บใต้ชื่อเดือน คือ จำนวนวันเรียน;
+            เกณฑ์ผ่าน คือ มีเวลาเรียนไม่น้อยกว่าร้อยละ ${PASS_RATE} ของวันเรียนทั้งหมด${c.contentW >= 240 && months.length <= 6 ? '' : ';  ตารางแสดงเฉพาะจำนวนวัน “มา” รายเดือน เพื่อให้พอดีกับหน้ากระดาษ'}</div>`,
+        signatures: [
+          { role: 'ครูประจำชั้น', name: ctx.teacherName },
+          { role: 'ผู้อำนวยการ' + ctx.school.name, name: ctx.school.director },
+        ],
+      });
+    };
+
+    init();
+  </script>
+</body>
+</html>

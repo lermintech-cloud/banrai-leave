@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ข้อมูลนักเรียน — ระบบธุรการชั้นเรียน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+
+    .gender-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px; font-weight: 700;
+    }
+    .g-ชาย  { background: #eff6ff; color: #2563eb; }
+    .g-หญิง { background: #fdf2f8; color: #9d174d; }
+
+    .student-num {
+      font-size: 12px; font-weight: 700;
+      color: #94a3b8;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 2px 8px;
+    }
+    .search-box {
+      display: flex; gap: 10px; align-items: center;
+      margin-bottom: 16px;
+    }
+    .search-box input {
+      flex: 1;
+      max-width: 320px;
+      padding: 8px 14px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 999px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .search-box input:focus {
+      outline: none; border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .action-btns { display: flex; gap: 6px; white-space: nowrap; }
+    .count-badge {
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 999px; font-size: 12px; font-weight: 700;
+      color: #64748b; padding: 3px 10px;
+    }
+  </style>
+  <link rel="stylesheet" href="/css/premium-theme.css">
+</head>
+<body class="app-body">
+  <div id="app-nav"></div>
+  <main class="app-main">
+    <div class="container">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-header-icon blue"><svg class="ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle class="f" cx="9" cy="8.5" r="3.3"/><path d="M3.2 19.5c.5-3.1 2.7-5 5.8-5s5.3 1.9 5.8 5"/><path d="M15.5 5.6a3.1 3.1 0 0 1 0 5.8M17.5 14.9c1.9.5 3.1 2 3.4 4.3"/></svg></div>
+          <div>
+            <div class="page-title">ข้อมูลนักเรียน</div>
+            <div class="page-subtitle" id="classroomLabel">กำลังโหลด...</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="addBtn" onclick="openModal()">
+          + เพิ่มนักเรียน
+        </button>
+      </div>
+
+      <div id="alertBox"></div>
+
+      <!-- Search + count -->
+      <div class="search-box">
+        <input type="search" id="searchInput" placeholder="ค้นหาชื่อนักเรียน..." oninput="filterStudents()">
+        <span class="count-badge" id="countBadge">0 คน</span>
+      </div>
+
+      <!-- Table card -->
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th style="width:80px">เลขที่</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th style="width:70px">เพศ</th>
+                <th style="width:120px">วันเกิด (ค.ศ.)</th>
+                <th style="width:110px">อายุ</th>
+                <th style="width:90px">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="studentTbody">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:40px;color:#94a3b8">
+                  <div class="spinner" style="margin:0 auto 10px"></div>
+                  <div style="font-weight:600">กำลังโหลด...</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <div class="bottom-spacer"></div>
+
+  <!-- Modal เพิ่ม/แก้ไขนักเรียน -->
+  <div class="modal-overlay" id="studentModal">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">เพิ่มนักเรียน</div>
+        <button class="modal-close" onclick="closeModal()" aria-label="ปิด"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editId">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">คำนำหน้า</label>
+            <select id="fPrefix" class="form-select" onchange="syncGender()">
+              <option value="เด็กชาย">เด็กชาย</option>
+              <option value="เด็กหญิง">เด็กหญิง</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">เพศ</label>
+            <select id="fGender" class="form-select">
+              <option value="ชาย">ชาย</option>
+              <option value="หญิง">หญิง</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ชื่อ <span style="color:#dc2626">*</span></label>
+            <input type="text" id="fFirst" placeholder="ชื่อ">
+          </div>
+          <div class="form-group">
+            <label class="form-label">นามสกุล <span style="color:#dc2626">*</span></label>
+            <input type="text" id="fLast" placeholder="นามสกุล">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">เลขประจำตัวนักเรียน</label>
+            <input type="text" id="fNumber" placeholder="เช่น 2060">
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันเกิด (ค.ศ.)</label>
+            <input type="date" id="fBirth">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">เลขบัตรประชาชน <span style="color:#94a3b8;font-weight:400">(ไม่บังคับ)</span></label>
+          <input type="text" id="fIdCard" placeholder="13 หลัก" maxlength="13">
+        </div>
+        <div id="agePreview" style="display:none;padding:8px 12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#16a34a;font-weight:600"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">ยกเลิก</button>
+        <button id="deleteBtn" class="btn btn-danger" onclick="confirmDelete()" style="display:none">ลบนักเรียน</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveStudent()"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v10.5M7.8 10.8l4.2 4.2 4.2-4.2"/><path d="M5 19.5h14"/></svg>บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { checkAuth, getCurrentClassroom } from '/js/auth.js';
+    import { api } from '/js/api.js';
+    import { calcAge, formatDate, showAlert, MAX_STUDENTS } from '/js/utils.js';
+    import { initNav } from '/js/nav.js';
+
+    let classroom = null;
+    let students = [];
+    let filtered = [];
+    let editingId = null;
+
+    async function init() {
+      await checkAuth();
+      classroom = getCurrentClassroom();
+      if (!classroom) {
+        alert('กรุณาเลือกห้องเรียนที่หน้าหลักก่อน');
+        window.location.href = '/dashboard.html';
+        return;
+      }
+      initNav('students');
+      document.getElementById('classroomLabel').textContent =
+        `ชั้น ${classroom.level} · ปีการศึกษา ${classroom.academic_year}`;
+      loadStudents();
+    }
+
+    async function loadStudents() {
+      try {
+        students = await api.getStudents(classroom.id);
+        filtered = [...students];
+        renderTable();
+      } catch (e) {
+        showAlert(document.getElementById('alertBox'), 'โหลดข้อมูลไม่ได้: ' + e.message, 'danger');
+      }
+    }
+
+    window.filterStudents = function() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      filtered = students.filter(s =>
+        `${s.prefix}${s.first_name}${s.last_name}${s.student_number||''}`.toLowerCase().includes(q)
+      );
+      renderTable();
+    };
+
+    function renderTable() {
+      // จำนวนนักเรียน/ห้อง (สูงสุด MAX_STUDENTS) และล็อกปุ่มเพิ่มเมื่อเต็ม
+      const total = students.length;
+      const full = total >= MAX_STUDENTS;
+      const badge = document.getElementById('countBadge');
+      badge.textContent = filtered.length !== total ? `${filtered.length} จาก ${total} คน` : `${total} / ${MAX_STUDENTS} คน`;
+      if (full) badge.style.setProperty('color', '#c0392b', 'important'); else badge.style.removeProperty('color');
+      const addBtn = document.getElementById('addBtn');
+      addBtn.disabled = full;
+      addBtn.textContent = full ? `ห้องเต็ม (${total}/${MAX_STUDENTS})` : '+ เพิ่มนักเรียน';
+      addBtn.title = full ? `ห้องนี้มีนักเรียนครบ ${MAX_STUDENTS} คนแล้ว` : '';
+      const tbody = document.getElementById('studentTbody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:48px;color:#94a3b8">
+          <div style="margin-bottom:8px"><svg class="ic" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></div>
+          <div style="font-weight:600">ไม่พบนักเรียน</div>
+        </td></tr>`;
+        return;
+      }
+      tbody.innerHTML = filtered.map((s, i) => {
+        const age = s.birth_date ? calcAge(s.birth_date) : null;
+        const genderClass = s.gender === 'หญิง' ? 'g-หญิง' : 'g-ชาย';
+        return `<tr>
+          <td style="color:#94a3b8;font-weight:700">${i+1}</td>
+          <td><span class="student-num">${s.student_number || '-'}</span></td>
+          <td>
+            <span style="font-weight:700">${s.prefix || ''}${s.first_name} ${s.last_name}</span>
+          </td>
+          <td><span class="gender-pill ${genderClass}">${s.gender || '-'}</span></td>
+          <td style="font-size:13px;color:#64748b">${s.birth_date ? formatDate(s.birth_date) : '—'}</td>
+          <td style="font-size:13px;color:#64748b">${age ? age.text : '—'}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn btn-sm btn-outline" onclick="openModal(${s.id})" title="แก้ไข" aria-label="แก้ไข"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="f" d="M4.5 19.5 5.4 15 16 4.5a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L9 18.6z"/><path d="m14.2 6.4 3.4 3.4"/></svg></button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    window.openModal = function(id = null) {
+      if (!id && students.length >= MAX_STUDENTS) {
+        showAlert(document.getElementById('alertBox'), `ห้องนี้มีนักเรียนครบ ${MAX_STUDENTS} คนแล้ว ไม่สามารถเพิ่มได้`, 'warning', 5000);
+        return;
+      }
+      editingId = id;
+      const isEdit = !!id;
+      document.getElementById('modalTitle').textContent = isEdit ? 'แก้ไขข้อมูลนักเรียน' : 'เพิ่มนักเรียนใหม่';
+      document.getElementById('deleteBtn').style.display = isEdit ? 'inline-flex' : 'none';
+
+      if (isEdit) {
+        const s = students.find(x => x.id === id);
+        if (s) {
+          document.getElementById('fPrefix').value = s.prefix || 'เด็กชาย';
+          document.getElementById('fGender').value = s.gender || 'ชาย';
+          document.getElementById('fFirst').value = s.first_name;
+          document.getElementById('fLast').value = s.last_name;
+          document.getElementById('fNumber').value = s.student_number || '';
+          document.getElementById('fBirth').value = s.birth_date ? s.birth_date.split('T')[0] : '';
+          document.getElementById('fIdCard').value = s.id_card || '';
+          updateAgePreview();
+        }
+      } else {
+        document.getElementById('fPrefix').value = 'เด็กชาย';
+        document.getElementById('fGender').value = 'ชาย';
+        document.getElementById('fFirst').value = '';
+        document.getElementById('fLast').value = '';
+        document.getElementById('fNumber').value = '';
+        document.getElementById('fBirth').value = '';
+        document.getElementById('fIdCard').value = '';
+        document.getElementById('agePreview').style.display = 'none';
+      }
+      document.getElementById('studentModal').classList.add('show');
+    };
+
+    window.closeModal = function() {
+      document.getElementById('studentModal').classList.remove('show');
+      editingId = null;
+    };
+
+    window.syncGender = function() {
+      const prefix = document.getElementById('fPrefix').value;
+      document.getElementById('fGender').value = prefix === 'เด็กหญิง' ? 'หญิง' : 'ชาย';
+    };
+
+    function updateAgePreview() {
+      const birth = document.getElementById('fBirth').value;
+      const preview = document.getElementById('agePreview');
+      if (birth) {
+        const age = calcAge(birth);
+        preview.style.display = 'block';
+        preview.textContent = `อายุ ${age ? age.text : '—'}`;
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('fBirth')?.addEventListener('change', updateAgePreview);
+    });
+
+    window.saveStudent = async function() {
+      const firstName = document.getElementById('fFirst').value.trim();
+      const lastName = document.getElementById('fLast').value.trim();
+      if (!firstName || !lastName) {
+        showAlert(document.getElementById('alertBox'), 'กรุณากรอกชื่อและนามสกุล', 'danger');
+        return;
+      }
+      const data = {
+        classroom_id: classroom.id,
+        prefix: document.getElementById('fPrefix').value,
+        gender: document.getElementById('fGender').value,
+        first_name: firstName,
+        last_name: lastName,
+        student_number: document.getElementById('fNumber').value.trim() || null,
+        birth_date: document.getElementById('fBirth').value || null,
+        id_card: document.getElementById('fIdCard').value.trim() || null,
+      };
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+      try {
+        if (editingId) {
+          await api.updateStudent(editingId, data);
+          showAlert(document.getElementById('alertBox'), 'แก้ไขข้อมูลสำเร็จ', 'success');
+        } else {
+          await api.createStudent(data);
+          showAlert(document.getElementById('alertBox'), 'เพิ่มนักเรียนสำเร็จ', 'success');
+        }
+        closeModal();
+        loadStudents();
+      } catch (e) {
+        showAlert(document.getElementById('alertBox'), 'เกิดข้อผิดพลาด: ' + e.message, 'danger');
+      } finally {
+        btn.disabled = false; btn.innerHTML = '<svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 4v10.5M7.8 10.8l4.2 4.2 4.2-4.2"/><path d="M5 19.5h14"/></svg>บันทึก';
+      }
+    };
+
+    window.confirmDelete = async function() {
+      const s = students.find(x => x.id === editingId);
+      if (!s || !confirm(`ยืนยันลบนักเรียน\n"${s.prefix}${s.first_name} ${s.last_name}"\n\nข้อมูลจะถูกลบถาวร`)) return;
+      try {
+        await api.deleteStudent(editingId);
+        showAlert(document.getElementById('alertBox'), `ลบ ${s.first_name} ${s.last_name} เรียบร้อย`, 'success');
+        closeModal();
+        loadStudents();
+      } catch (e) {
+        showAlert(document.getElementById('alertBox'), 'ลบไม่ได้: ' + e.message, 'danger');
+      }
+    };
+
+    // Close on backdrop click
+    document.getElementById('studentModal').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#102d60">
+  <meta name="description" content="ระบบธุรการชั้นเรียน โรงเรียนบ้านไร่ ช่วยดูแลข้อมูลนักเรียน เช็คชื่อ สรุปเวลาเรียน กิจกรรม สุขภาพ และการออมเงินในระบบเดียว">
+  <title>ระบบธุรการชั้นเรียน | โรงเรียนบ้านไร่</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Premium welcome screen — แสดง 5 วินาที หรือกดปุ่มเพื่อเข้าใช้งานทันที */
+    .welcome-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 18% 18%,rgba(36,87,214,.24),transparent 32%),radial-gradient(circle at 85% 75%,rgba(33,197,223,.20),transparent 30%),linear-gradient(135deg,#091a3a 0%,#102653 48%,#173f79 100%);color:#fff;transition:opacity .55s ease,visibility .55s ease}
+    .welcome-screen.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+    .welcome-orb{position:absolute;border-radius:50%;filter:blur(2px);opacity:.55;pointer-events:none}
+    .welcome-orb.a{width:420px;height:420px;left:-170px;top:-150px;background:radial-gradient(circle,rgba(72,153,255,.32),transparent 68%)}
+    .welcome-orb.b{width:520px;height:520px;right:-220px;bottom:-250px;background:radial-gradient(circle,rgba(32,211,224,.25),transparent 68%)}
+    .welcome-card{width:min(92vw,650px);padding:42px 34px 34px;text-align:center;position:relative;z-index:1;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.075);border-radius:30px;box-shadow:0 35px 100px rgba(0,0,0,.28);backdrop-filter:blur(20px);animation:welcomeIn .75s ease both}
+    .welcome-logo{width:86px;height:86px;margin:0 auto 20px;padding:8px;border-radius:24px;background:#fff;box-shadow:0 15px 40px rgba(0,0,0,.22)}
+    .welcome-logo img{width:100%;height:100%;object-fit:contain}
+    .welcome-kicker{font-size:11px;letter-spacing:2.2px;text-transform:uppercase;color:rgba(255,255,255,.62);margin-bottom:12px}
+    .welcome-title{font-size:clamp(28px,5vw,45px);line-height:1.25;font-weight:700;letter-spacing:-.7px;margin:0;color:#fff}
+    .welcome-title span{background:linear-gradient(100deg,#fff,#8eeaf1);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .welcome-subtitle{margin:10px 0 24px;font-size:15px;color:rgba(255,255,255,.72)}
+    .welcome-divider{width:54px;height:2px;margin:0 auto 22px;border-radius:9px;background:linear-gradient(90deg,#4b8fff,#45d7df)}
+    .welcome-credit-label{font-size:10px;color:rgba(255,255,255,.46);margin-bottom:4px}
+    .welcome-credit{font-size:16px;font-weight:700;color:#fff}.welcome-school{font-size:12px;color:rgba(255,255,255,.62);margin-top:2px}
+    .welcome-enter{margin-top:27px;min-width:210px;border:0;border-radius:14px;padding:13px 24px;color:#fff;background:linear-gradient(115deg,#2f6fe6,#6559e8 65%,#21bfd5);font:700 14px var(--font);cursor:pointer;box-shadow:0 13px 30px rgba(24,106,220,.35);transition:.2s ease}
+    .welcome-enter:hover{transform:translateY(-2px);box-shadow:0 17px 36px rgba(24,106,220,.45)}
+    .welcome-count{margin-top:13px;font-size:10px;color:rgba(255,255,255,.42)}
+    @keyframes welcomeIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+    @media(max-width:600px){.welcome-card{padding:34px 22px 28px;border-radius:25px}.welcome-logo{width:72px;height:72px;border-radius:20px}.welcome-subtitle{font-size:13px}}
+    :root{--navy:#102653;--blue:#2457d6;--cyan:#21c5df;--violet:#7658e8;--ink:#172642;--muted:#71809a;--line:#e8edf6;--font:'IBM Plex Sans Thai',sans-serif}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:var(--font);color:var(--ink);background:#f6f8fd;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    .page-shell{min-height:100vh;position:relative;isolation:isolate;background:radial-gradient(ellipse at 85% 4%,rgba(103,121,255,.12),transparent 30rem),radial-gradient(ellipse at 5% 35%,rgba(32,197,223,.10),transparent 27rem),#f7f9fd}
+    .topbar{max-width:1240px;margin:auto;padding:22px 30px;display:flex;align-items:center;justify-content:space-between;gap:18px;position:relative;z-index:3}
+    .brand{display:flex;align-items:center;gap:13px;min-width:0}
+    .brand-logo{width:54px;height:54px;border-radius:16px;background:#fff;display:grid;place-items:center;padding:5px;box-shadow:0 8px 24px rgba(24,52,108,.12);border:1px solid rgba(220,229,245,.9);flex:none}
+    .brand-logo img{width:100%;height:100%;object-fit:contain}
+    .brand-name{font-size:17px;font-weight:700;line-height:1.25;color:#172b50}
+    .brand-sub{font-size:11px;color:#8491a8;margin-top:3px}
+    .top-actions{display:flex;align-items:center;gap:12px}
+    .top-note{font-size:12px;color:#7e8ba2}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:13px;padding:12px 21px;font:600 14px var(--font);cursor:pointer;transition:.2s ease}
+    .btn-primary{color:#fff;background:linear-gradient(115deg,#2457d6,#584fe0 65%,#7658e8);box-shadow:0 10px 24px rgba(58,83,209,.25)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 15px 30px rgba(58,83,209,.32)}
+    .btn-outline{background:#fff;color:#2457b8;border:1px solid #dce5f5}
+    .hero{max-width:1240px;margin:0 auto;padding:42px 30px 70px;display:grid;grid-template-columns:1.05fr .95fr;gap:35px;align-items:center;position:relative}
+    .hero-copy{position:relative;z-index:2;padding:18px 0}
+    .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 13px;border-radius:999px;background:#eaf1ff;color:#2856bd;font-size:12px;font-weight:700;border:1px solid #dce7ff;margin-bottom:22px}
+    .eyebrow-dot{width:7px;height:7px;border-radius:50%;background:#23bfd3;box-shadow:0 0 0 4px rgba(35,191,211,.13)}
+    h1{font-size:clamp(34px,4.2vw,56px);line-height:1.22;letter-spacing:-1.1px;color:#142b55;font-weight:700;margin-bottom:18px}
+    h1 .gradient{background:linear-gradient(100deg,#2457d6 5%,#4d65e8 52%,#14aeca 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-desc{font-size:16px;line-height:1.9;color:#65748e;max-width:580px;margin-bottom:27px}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .hero-trust{display:flex;align-items:center;gap:11px;margin-top:28px;color:#8290a7;font-size:12px}
+    .trust-icon{width:32px;height:32px;border-radius:10px;background:#e8f8f7;color:#159d9b;display:grid;place-items:center}
+    .hero-art{min-height:420px;position:relative;display:flex;align-items:center;justify-content:center}
+    .art-glow{position:absolute;width:390px;height:390px;border-radius:50%;background:linear-gradient(140deg,rgba(53,123,241,.18),rgba(29,203,220,.12),rgba(129,98,239,.14));filter:blur(2px)}
+    .dashboard-preview{width:min(100%,490px);position:relative;z-index:1;border-radius:25px;padding:17px;background:rgba(255,255,255,.76);border:1px solid rgba(255,255,255,.95);box-shadow:0 28px 80px rgba(32,57,112,.17);backdrop-filter:blur(18px);transform:rotate(1deg)}
+    .preview-top{display:flex;align-items:center;justify-content:space-between;padding:3px 3px 15px;border-bottom:1px solid #edf1f7}
+    .preview-title{font-size:13px;font-weight:700;color:#273b61}
+    .preview-chip{font-size:10px;color:#189b87;background:#e9faf5;padding:5px 9px;border-radius:99px;font-weight:700}
+    .preview-welcome{margin:15px 0;padding:16px;border-radius:17px;background:linear-gradient(115deg,#2457d6,#4268e8 62%,#19b9cf);color:#fff;position:relative;overflow:hidden}
+    .preview-welcome:after{content:'';position:absolute;width:150px;height:150px;border-radius:50%;right:-35px;top:-80px;background:rgba(255,255,255,.12)}
+    .preview-welcome small{font-size:10px;opacity:.8}.preview-welcome strong{display:block;font-size:19px;margin:4px 0}.preview-welcome span{font-size:10px;opacity:.8}
+    .preview-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px}
+    .preview-stat{padding:13px 10px;border-radius:14px;background:#f7f9fd;border:1px solid #edf1f7}
+    .preview-stat .s-icon{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;font-size:13px;margin-bottom:8px}
+    .preview-stat b{display:block;font-size:19px;color:#23385f;line-height:1.1}.preview-stat small{font-size:10px;color:#8793a9}
+    .s-blue{background:#e9f0ff}.s-green{background:#e7faf2}.s-orange{background:#fff4e6}
+    .preview-bottom{display:grid;grid-template-columns:1.1fr .9fr;gap:10px}
+    .mini-panel{background:#fff;border:1px solid #edf1f7;border-radius:14px;padding:12px}
+    .mini-panel b{font-size:11px;color:#354765}.mini-bars{display:flex;align-items:end;gap:6px;height:52px;margin-top:9px}.mini-bars i{display:block;flex:1;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#42c8df,#3972e7)}
+    .mini-check{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:10px;color:#71809a}.check-dot{width:7px;height:7px;background:#21b98d;border-radius:50%}
+    .float-tag{position:absolute;z-index:2;background:#fff;border:1px solid #edf1f7;box-shadow:0 12px 30px rgba(31,57,110,.13);border-radius:15px;padding:12px 15px;display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;color:#3b4d6c}
+    .float-tag.one{left:-2px;top:72px}.float-tag.two{right:-2px;bottom:60px}
+    .float-icon{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;font-size:15px}
+    .section{max-width:1240px;margin:0 auto;padding:16px 30px 74px}
+    .section-heading{text-align:center;margin-bottom:29px}.section-kicker{font-size:11px;letter-spacing:1.5px;color:#3472d9;font-weight:700}.section-heading h2{font-size:29px;color:#192f56;margin:8px 0}.section-heading p{font-size:13px;color:#7d8aa1}
+    .feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+    .feature-card{background:rgba(255,255,255,.9);border:1px solid #e9eef6;border-radius:19px;padding:22px 19px;box-shadow:0 7px 24px rgba(31,54,101,.045);transition:.22s ease;min-height:172px}
+    .feature-card:hover{transform:translateY(-5px);box-shadow:0 16px 35px rgba(31,54,101,.10);border-color:#d7e3fa}
+    .feature-icon{width:45px;height:45px;border-radius:14px;display:grid;place-items:center;font-size:21px;margin-bottom:14px}
+    .feature-card h3{font-size:14px;color:#263a5e;margin-bottom:6px}.feature-card p{font-size:11px;line-height:1.75;color:#8290a7}
+    .f1{background:#eaf1ff;color:#3166d9}.f2{background:#e6f9f2;color:#12a57c}.f3{background:#fff3e6;color:#e78a27}.f4{background:#f1edff;color:#7959d9}.f5{background:#e6f8fc;color:#159db8}.f6{background:#fff0f3;color:#df6486}.f7{background:#edf4ff;color:#4775cf}.f8{background:#f1f4f9;color:#62738f}
+    .workflow{max-width:1180px;margin:0 auto 70px;padding:0 30px}.workflow-box{border-radius:25px;padding:30px 34px;background:linear-gradient(115deg,#142e61,#2457b8 58%,#237fc0);color:#fff;position:relative;overflow:hidden;box-shadow:0 20px 50px rgba(26,66,145,.18)}
+    .workflow-box:after{content:'';position:absolute;width:300px;height:300px;border-radius:50%;right:-80px;top:-170px;background:rgba(255,255,255,.08)}
+    .workflow-title{font-size:20px;font-weight:700;margin-bottom:6px;position:relative;z-index:1}.workflow-sub{font-size:12px;color:rgba(255,255,255,.7);margin-bottom:22px;position:relative;z-index:1}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;position:relative;z-index:1}.step{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);padding:13px;border-radius:14px}.step-num{width:29px;height:29px;border-radius:10px;background:rgba(255,255,255,.17);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}.step span:last-child{font-size:11px;font-weight:600}
+    .credit{border-top:1px solid #e8edf5;background:rgba(255,255,255,.78);padding:25px 30px 29px}.credit-inner{max-width:1180px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.credit-brand{display:flex;align-items:center;gap:12px}.credit-logo{width:38px;height:38px;border-radius:11px;background:#fff;border:1px solid #e8edf5;padding:4px}.credit-logo img{width:100%;height:100%;object-fit:contain}.credit-label{font-size:10px;color:#9aa5b8}.credit-name{font-size:13px;font-weight:700;color:#344767}.credit-role{font-size:10px;color:#8290a5;margin-top:2px}.credit-contact{font-size:11px;color:#6d7c95}.credit-contact a{color:#2d61c8;font-weight:700}
+    @media(max-width:1000px){.hero{grid-template-columns:1fr 1fr;gap:15px}.hero-art{min-height:360px}.float-tag.one{left:-8px}.float-tag.two{right:-8px}.feature-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:720px){.topbar{padding:15px 18px}.brand-logo{width:46px;height:46px}.brand-name{font-size:14px}.brand-sub{font-size:10px}.top-note{display:none}.top-actions .btn{padding:10px 14px;font-size:12px}.hero{grid-template-columns:1fr;padding:25px 20px 45px;gap:5px}.hero-copy{padding:10px 0 0}.eyebrow{margin-bottom:15px}h1{font-size:35px}.hero-desc{font-size:13px;margin-bottom:20px}.hero-trust{margin-top:19px}.hero-art{min-height:335px;margin:0 -3px}.dashboard-preview{padding:12px;border-radius:20px}.art-glow{width:300px;height:300px}.float-tag{padding:9px 11px;font-size:9px}.float-tag.one{top:28px;left:-2px}.float-tag.two{bottom:24px;right:-2px}.section{padding:5px 18px 48px}.section-heading h2{font-size:23px}.feature-grid{gap:10px}.feature-card{padding:16px 14px;min-height:160px}.feature-card h3{font-size:12px}.feature-card p{font-size:10px}.feature-icon{width:40px;height:40px}.workflow{padding:0 18px;margin-bottom:45px}.workflow-box{padding:23px 18px}.workflow-title{font-size:17px}.steps{grid-template-columns:repeat(2,1fr)}.credit{padding:20px 18px}.credit-inner{align-items:flex-start;flex-direction:column;gap:13px}}
+    @media(max-width:390px){h1{font-size:31px}.hero-actions .btn{width:100%}.hero-art{min-height:295px}.preview-stat{padding:10px 7px}.preview-stat b{font-size:16px}.float-tag{display:none}.feature-grid{grid-template-columns:1fr 1fr}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <div class="welcome-screen" id="welcomeScreen" aria-label="หน้าเปิดระบบ">
+    <div class="welcome-orb a"></div><div class="welcome-orb b"></div>
+    <div class="welcome-card">
+      <div class="welcome-logo"><img src="/assets/school-logo.png" alt="โลโก้โรงเรียนบ้านไร่"></div>
+      <div class="welcome-kicker">BAN RAI SCHOOL · SMART CLASSROOM</div>
+      <h2 class="welcome-title">ระบบธุรการชั้นเรียน<br><span>โรงเรียนบ้านไร่</span></h2>
+      <p class="welcome-subtitle">จัดการข้อมูลนักเรียน งานประจำชั้น และรายงานอย่างเป็นระบบ</p>
+      <div class="welcome-divider"></div>
+      <div class="welcome-credit-label">พัฒนาและดูแลระบบโดย</div>
+      <div class="welcome-credit">เฉลิมพล จันทร์แดง</div>
+      <div class="welcome-school">โรงเรียนบ้านไร่</div>
+      <button class="welcome-enter" id="welcomeEnter" type="button">เข้าสู่การใช้งาน <span>→</span></button>
+      <div class="welcome-count" id="welcomeCount">กำลังเตรียมระบบ · 5 วินาที</div>
+    </div>
+  </div>
+
+<div class="page-shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="โรงเรียนบ้านไร่ หน้าหลัก">
+      <span class="brand-logo"><img src="/assets/school-logo.png" alt="โลโก้โรงเรียนบ้านไร่"></span>
+      <span><span class="brand-name">โรงเรียนบ้านไร่</span><span class="brand-sub">ระบบธุรการชั้นเรียน · สพป.เชียงใหม่ เขต 5</span></span>
+    </a>
+    <div class="top-actions"><span class="top-note">พื้นที่ทำงานสำหรับคุณครู</span><a class="btn btn-primary" href="/login.html">เข้าสู่ระบบ <span aria-hidden="true">→</span></a></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> DIGITAL CLASSROOM · BAN RAI SCHOOL</div>
+        <h1>จัดการงานชั้นเรียน<br><span class="gradient">ง่ายขึ้นในที่เดียว</span></h1>
+        <p class="hero-desc">ผู้ช่วยงานประจำชั้นสำหรับคุณครูโรงเรียนบ้านไร่ รวมข้อมูลนักเรียน การเช็คชื่อ กิจกรรม สุขภาพ และการออมเงินไว้ในระบบเดียว ใช้งานสะดวก เป็นระเบียบ และพร้อมเรียกดูข้อมูลได้ทุกเวลา</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="/login.html">เริ่มต้นใช้งานระบบ <span aria-hidden="true">→</span></a><a class="btn btn-outline" href="#features">ดูความสามารถของระบบ <span aria-hidden="true">↓</span></a></div>
+        <div class="hero-trust"><span class="trust-icon">✓</span><span>ออกแบบเพื่อสนับสนุนการทำงานของครูและการดูแลนักเรียน</span></div>
+      </div>
+      <div class="hero-art" aria-label="ภาพตัวอย่างหน้าระบบธุรการชั้นเรียน">
+        <div class="art-glow"></div>
+        <div class="float-tag one"><span class="float-icon f2">✓</span><span>เช็คชื่อได้สะดวก<br><small style="font-weight:400;color:#8793a9">บันทึกข้อมูลรายวัน</small></span></div>
+        <div class="dashboard-preview">
+          <div class="preview-top"><span class="preview-title">ภาพรวมงานประจำชั้น</span><span class="preview-chip">● ระบบพร้อมใช้งาน</span></div>
+          <div class="preview-welcome"><small>ยินดีต้อนรับคุณครู</small><strong>ดูแลทุกเรื่องของชั้นเรียน</strong><span>ข้อมูลสำคัญรวมอยู่ในหน้าเดียว</span></div>
+          <div class="preview-stats">
+            <div class="preview-stat"><span class="s-icon s-blue">♧</span><b>ข้อมูล</b><small>ทะเบียนนักเรียน</small></div>
+            <div class="preview-stat"><span class="s-icon s-green">✓</span><b>รายวัน</b><small>การเข้าเรียน</small></div>
+            <div class="preview-stat"><span class="s-icon s-orange">▤</span><b>รายงาน</b><small>สรุปผลข้อมูล</small></div>
+          </div>
+          <div class="preview-bottom">
+            <div class="mini-panel"><b>ภาพรวมการติดตาม</b><div class="mini-bars"><i style="height:48%"></i><i style="height:72%"></i><i style="height:57%"></i><i style="height:88%"></i><i style="height:66%"></i><i style="height:96%"></i><i style="height:77%"></i></div></div>
+            <div class="mini-panel"><b>งานที่ดูแลได้</b><div class="mini-check"><span class="check-dot"></span> ข้อมูลนักเรียน</div><div class="mini-check"><span class="check-dot"></span> สุขภาพและกิจกรรม</div><div class="mini-check"><span class="check-dot"></span> การออมเงิน</div></div>
+          </div>
+        </div>
+        <div class="float-tag two"><span class="float-icon f4">▥</span><span>รายงานเป็นระบบ<br><small style="font-weight:400;color:#8793a9">ค้นหาและสรุปได้ง่าย</small></span></div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="section-heading"><div class="section-kicker">ONE SYSTEM · MANY POSSIBILITIES</div><h2>ครบทุกงานสำคัญของครูประจำชั้น</h2><p>เครื่องมือที่ช่วยให้การดูแลนักเรียนและงานประจำวันเป็นเรื่องง่ายขึ้น</p></div>
+      <div class="feature-grid">
+        <article class="feature-card"><div class="feature-icon f1">♧</div><h3>ทะเบียนข้อมูลนักเรียน</h3><p>จัดเก็บข้อมูลประจำตัวนักเรียนและข้อมูลชั้นเรียนให้เป็นหมวดหมู่ ค้นหาได้สะดวก</p></article>
+        <article class="feature-card"><div class="feature-icon f2">✓</div><h3>เช็คชื่อเข้าเรียน</h3><p>บันทึกการมาเรียน ขาด ลา และสถานะต่าง ๆ ได้อย่างเป็นระบบในแต่ละวัน</p></article>
+        <article class="feature-card"><div class="feature-icon f3">▤</div><h3>สรุปเวลาเรียนและรายงาน</h3><p>ดูข้อมูลการเข้าเรียน พร้อมสรุปผลรายช่วงเวลาเพื่อประกอบการติดตาม</p></article>
+        <article class="feature-card"><div class="feature-icon f4">✦</div><h3>บันทึกกิจกรรมประจำวัน</h3><p>บันทึกกิจกรรมและเรื่องราวสำคัญของนักเรียน เพื่อให้ข้อมูลต่อเนื่องและตรวจสอบได้</p></article>
+        <article class="feature-card"><div class="feature-icon f5">♡</div><h3>ติดตามสุขภาพนักเรียน</h3><p>บันทึกน้ำหนัก ส่วนสูง และติดตามข้อมูลสุขภาพที่จำเป็นของนักเรียน</p></article>
+        <article class="feature-card"><div class="feature-icon f6">＋</div><h3>ตรวจสุขภาพ</h3><p>บันทึกผลการตรวจสุขภาพและข้อมูลที่เกี่ยวข้อง เพื่อช่วยดูแลนักเรียนอย่างใกล้ชิด</p></article>
+        <article class="feature-card"><div class="feature-icon f7">◉</div><h3>ระบบออมเงินนักเรียน</h3><p>บันทึกข้อมูลการออมและติดตามยอดเงิน ช่วยส่งเสริมนิสัยรักการออม</p></article>
+        <article class="feature-card"><div class="feature-icon f8">⚙</div><h3>จัดการข้อมูลและตั้งค่า</h3><p>จัดการข้อมูลชั้นเรียนและการตั้งค่าระบบตามสิทธิ์การใช้งาน</p></article>
+      </div>
+    </section>
+
+    <section class="workflow">
+      <div class="workflow-box"><div class="workflow-title">เริ่มต้นใช้งานได้ง่าย ไม่ซับซ้อน</div><div class="workflow-sub">เข้าสู่ระบบ แล้วจัดการงานประจำชั้นได้จากพื้นที่ทำงานเดียว</div>
+        <div class="steps"><div class="step"><span class="step-num">01</span><span>เข้าสู่ระบบด้วยบัญชีของคุณครู</span></div><div class="step"><span class="step-num">02</span><span>เลือกห้องเรียนที่รับผิดชอบ</span></div><div class="step"><span class="step-num">03</span><span>บันทึกและติดตามข้อมูลนักเรียน</span></div><div class="step"><span class="step-num">04</span><span>เรียกดูข้อมูลและรายงานได้สะดวก</span></div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="credit"><div class="credit-inner">
+    <div class="credit-brand"><div class="credit-logo"><img src="/assets/school-logo.png" alt="โลโก้โรงเรียนบ้านไร่"></div><div><div class="credit-label">พัฒนาและดูแลระบบโดย</div><div class="credit-name">เฉลิมพล จันทร์แดง</div><div class="credit-role">ครูโรงเรียนบ้านไร่</div></div></div>
+    <div class="credit-contact">ติดต่อผู้พัฒนา <a href="tel:0863414181">086-341-4181</a><br><span style="color:#a0aabd">ระบบธุรการชั้นเรียน โรงเรียนบ้านไร่ · © 2569</span></div>
+  </div></footer>
+</div>
+<script>
+  (function(){
+    const screen=document.getElementById('welcomeScreen');
+    const enter=document.getElementById('welcomeEnter');
+    const count=document.getElementById('welcomeCount');
+    let sessionTarget='/login.html';
+    let done=false;
+
+    // ตรวจ session ไว้ล่วงหน้า แต่ยังคงหน้าเปิดไว้ 5 วินาทีตามที่กำหนด
+    fetch('/api/auth/me',{credentials:'include'}).then(r=>{if(r.ok)sessionTarget='/dashboard.html'}).catch(()=>{});
+
+    function go(){
+      if(done)return; done=true;
+      screen.classList.add('is-hidden');
+      setTimeout(()=>location.replace(sessionTarget),350);
+    }
+    enter.addEventListener('click',go);
+
+    let remaining=5;
+    const timer=setInterval(()=>{
+      remaining--;
+      if(remaining>0) count.textContent='กำลังเตรียมระบบ · '+remaining+' วินาที';
+      else {clearInterval(timer); count.textContent='กำลังเข้าสู่ระบบ…'; go();}
+    },1000);
+  })();
+</script>
+</body>
+</html>
