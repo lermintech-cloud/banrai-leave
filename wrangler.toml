@@ -1,8 +1,0 @@
-name = "banrai-homeroom"
-compatibility_date = "2024-01-01"
-pages_build_output_dir = "public"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "banrai-homeroom-db"
-database_id = "51d45e48-e08b-419c-926c-cc6a5475b371"
