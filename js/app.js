@@ -26,7 +26,7 @@ const ic=n=>`<svg class="ic" viewBox="0 0 24 24">${IC[n]}</svg>`;
 const uid=()=>Math.random().toString(36).slice(2,9);
 const today=()=>new Date().toISOString().slice(0,10);
 const init=n=>(n.replace(/^(นางสาว|นาง|นาย)\s*/,'')[0]||'?');
-const SM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'],TC=['#fb7185','#60a5fa','#34d399'];
+const SM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'],TC=['#FF2D55','#007AFF','#34C759'];
 let sel=null,S={},L=[],role=null,me=null,view='dash',lf='all',unlocked=false,stab='school',F={mode:'fy',year:fy(today()),term:1};
 const SG={};
 function normS(){if(typeof S.teachers=='string')S.teachers=S.teachers.split('\n').filter(Boolean).map(x=>{const[n,p,t]=x.split('|');return{id:uid(),n:n.trim(),p:(p||'').trim(),t:(t||'').trim()}});
