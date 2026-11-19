@@ -32,7 +32,12 @@ const SG={};
 function normS(){if(typeof S.teachers=='string')S.teachers=S.teachers.split('\n').filter(Boolean).map(x=>{const[n,p,t]=x.split('|');return{id:uid(),n:n.trim(),p:(p||'').trim(),t:(t||'').trim()}});
  S.teachers.forEach(t=>t.id=t.id||uid());S.sigs=S.sigs||{};T1=S.t1||5;T2=S.t2||11;Object.keys(S.sigs).forEach(k=>S.sigs[k]=nsg(S.sigs[k]))}
 async function loadFonts(){for(const[k,w]of[['r','400'],['b','700']]){const u=S.fonts&&S.fonts[k];if(!u)continue;try{const f=new FontFace('TH Sarabun New',`url(${u})`,{weight:w});await f.load();document.fonts.add(f)}catch(e){}}}
-async function init0(){S=await db.settings();normS();await loadFonts();L=await db.leaves();render()}
+async function init0(){$('#app').innerHTML=`<div class="hero"><img src="assets/logo.png"><p>กำลังโหลดข้อมูล...</p></div>`;
+ try{S=await db.settings();normS();L=await db.leaves()}
+ catch(e){$('#app').innerHTML=`<div class="hero"><img src="assets/logo.png"><h1>เชื่อมต่อฐานข้อมูลไม่ได้</h1><p>ข้อมูลใบลาและรายชื่อครูยังอยู่ในฐานข้อมูลครบ เพียงโหลดไม่สำเร็จในขณะนี้<br>ตรวจสอบอินเทอร์เน็ตแล้วกดลองใหม่</p><p class="mut" style="font-size:13px">${esc0(e&&e.message||e)}</p><p><button class="btn big2" onclick="init0()">ลองใหม่</button></p></div>`;return}
+ render();loadFonts().then(()=>{if(S.fonts&&(S.fonts.r||S.fonts.b))render()});
+ try{const n=await db.syncLocal(L);if(n){L=await db.leaves();render();toast(`ส่งใบลาที่ค้างในเครื่องขึ้นระบบแล้ว ${n} ใบ`)}}catch(e){}}
+const esc0=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m){const e=document.createElement('div');e.className='toast';e.textContent=m;document.body.appendChild(e);setTimeout(()=>e.remove(),2200)}
 /* ---------- โครงหน้า ---------- */
 function navFor(){const n=[];
@@ -154,8 +159,8 @@ function dash(){const all=mine(),a=filt(all),sum=(t)=>a.filter(l=>l.type==t).red
 function settings(){if(!unlocked)return `<div class="card lockc">${ic('lock')}<h3>ส่วนนี้สำหรับผู้ดูแลระบบ</h3><p class="sub">กรอกรหัสผู้ดูแลเพื่อเข้าตั้งค่า${S.pinSet?'':'<br>รหัสเริ่มต้นคือ <b>1234</b> — เปลี่ยนทันทีหลังเข้าใช้'}</p><input id="pin" type="password" inputmode="numeric" placeholder="รหัสผู้ดูแล" onkeydown="if(event.key=='Enter')unlock()"><p><button class="btn g" onclick="unlock()">${ic('lock')} ปลดล็อก</button></p></div>`;
  const tabs=[['school','โรงเรียน','building'],['teachers','รายชื่อครู','users'],['staff','ผู้ลงนามและลายเซ็น','pen'],['leaves','จัดการใบลา','file'],['sys','ระบบและสำรองข้อมูล','settings'],['sec','รหัสผ่าน','shield']];
  return `<div class="chips">${tabs.map(t=>`<button class="chip ${stab==t[0]?'on':''}" onclick="stab='${t[0]}';render()">${ic(t[2])} ${t[1]}</button>`).join('')}</div>${{school:tSchool,teachers:tTeachers,staff:tStaff,leaves:tLeaves,sys:tSys,sec:tSec}[stab]()}`}
-async function unlock(){const h=await sha($('#pin').value);if(await db.auth(h)){PH=h;unlocked=true;render()}else alert('รหัสไม่ถูกต้อง')}
-async function persist(m){try{await db.saveSettings(S);toast(m||'บันทึกแล้ว')}catch{alert('บันทึกไม่สำเร็จ กรุณาปลดล็อกใหม่');unlocked=false;render()}}
+async function unlock(){const h=await sha($('#pin').value);let ok;try{ok=await db.auth(h)}catch(e){return alert(dbErr(e))}if(ok){PH=h;unlocked=true;render()}else alert('รหัสไม่ถูกต้อง')}
+async function persist(m){try{await db.saveSettings(S);toast(m||'บันทึกแล้ว')}catch(e){if(e==='auth'){alert('รหัสผู้ดูแลไม่ถูกต้องหรือถูกเปลี่ยน กรุณาปลดล็อกใหม่');unlocked=false}else alert(dbErr(e));S=await db.settings().catch(()=>S);normS();render();return false}return true}
 const fld=(k,l)=>`<div><label>${l}</label><input id="s_${k}" value="${S[k]||''}"></div>`;
 const rd=ks=>ks.forEach(k=>S[k]=$('#s_'+k).value);
 function tSchool(){return `<div class="card k1"><div class="row">${fld('school','ชื่อโรงเรียน')}${fld('area','สังกัด')}${fld('fileFmt','ชื่อไฟล์ PDF ({type} {name} {date})')}</div><p><button class="btn g" onclick="rd(['school','area','fileFmt']);persist()">${ic('check')} บันทึก</button></p></div>`}
@@ -171,14 +176,14 @@ async function addBulk(){const rows=$('#nt_bulk').value.split('\n').map(x=>x.tri
 function editT(i,k,v){S.teachers[i][k]=v.trim();persist('แก้ไขแล้ว')}
 async function delT(i){if(confirm('ลบ '+S.teachers[i].n+' ?')){S.teachers.splice(i,1);await persist('ลบแล้ว');render()}}
 function tSec(){return `<div class="card k5"><h3>เปลี่ยนรหัสผู้ดูแล</h3><div class="row"><div><label>รหัสใหม่ (อย่างน้อย 4 ตัว)</label><input id="np1" type="password"></div><div><label>ยืนยันรหัสใหม่</label><input id="np2" type="password"></div></div><p><button class="btn g" onclick="chPin()">${ic('shield')} เปลี่ยนรหัส</button></p><p class="sub">รหัสเก็บแบบเข้ารหัส (SHA-256) และเซิร์ฟเวอร์จะไม่ยอมให้แก้ตั้งค่าหากรหัสไม่ถูกต้อง</p></div>`}
-async function chPin(){const a=$('#np1').value;if(a.length<4)return alert('รหัสต้องมีอย่างน้อย 4 ตัว');if(a!=$('#np2').value)return alert('รหัสยืนยันไม่ตรงกัน');S.pinHash=await sha(a);await persist('เปลี่ยนรหัสแล้ว');PH=S.pinHash;S.pinSet=true}
+async function chPin(){const a=$('#np1').value;if(a.length<4)return alert('รหัสต้องมีอย่างน้อย 4 ตัว');if(a!=$('#np2').value)return alert('รหัสยืนยันไม่ตรงกัน');const h=await sha(a);S.pinHash=h;if(await persist('เปลี่ยนรหัสแล้ว')){PH=h;S.pinSet=true}}
 function tSigM(i){const t=S.teachers[i];modal(`<div class="mb"><h3>ลายเซ็นของ ${t.n}</h3><p class="sub">ตั้งไว้แล้วระบบจะใส่ในใบลาของครูท่านนี้ให้อัตโนมัติ</p>${sgBox('ts',t.sig)}<p><button class="btn g" onclick="t=S.teachers[${i}];t.sig={...SG.ts};persist();closeM();render()">${ic('check')} บันทึก</button> <button class="btn l" onclick="closeM()">ยกเลิก</button></p></div>`);sgR('ts')}
 function tLeaves(){const a=[...L].sort((x,y)=>y.start.localeCompare(x.start));
  return `<div class="card k5"><div class="bulk" style="margin:0"><p class="sub" style="margin:0">ลบใบลาได้เฉพาะที่นี่ ลบแล้วกู้คืนไม่ได้ — แนะนำสำรองข้อมูลก่อน</p><button class="btn r" onclick="delSel()">${ic('trash')} ลบที่เลือก</button></div></div>
  <div class="wrap" style="margin-top:12px"><table class="t"><tr><th><input type="checkbox" onchange="document.querySelectorAll('.dk').forEach(x=>x.checked=this.checked)"></th><th>วันที่ลา</th><th>ชื่อ</th><th>ประเภท</th><th>วัน</th><th>สถานะ</th><th></th></tr>
  ${a.map(l=>`<tr><td><input type="checkbox" class="dk" value="${l.id}"></td><td>${thS(l.start)}</td><td>${l.name}</td><td>${pill(l)}</td><td>${l.days}</td><td><span class="tag ${ST[l.status]}">${l.status}</span></td><td><button class="btn s" onclick="preview(${l.id})">${ic('eye')}</button></td></tr>`).join('')||'<tr><td colspan=7>ยังไม่มีใบลา</td></tr>'}</table></div>`}
 async function delSel(){const ids=[...document.querySelectorAll('.dk:checked')].map(x=>x.value);if(!ids.length)return alert('กรุณาเลือกใบลาก่อน');if(!confirm(`ลบ ${ids.length} ใบลา? กู้คืนไม่ได้`))return;
- try{for(const id of ids)await db.del(id)}catch{alert('รหัสหมดอายุ กรุณาปลดล็อกใหม่');unlocked=false}L=await db.leaves();render();toast('ลบแล้ว')}
+ try{for(const id of ids)await db.del(id)}catch(e){if(e==='auth'){alert('รหัสหมดอายุ กรุณาปลดล็อกใหม่');unlocked=false}else alert(dbErr(e))}L=await db.leaves();render();toast('ลบแล้ว')}
 function tSys(){const mo=(k,v)=>`<select id="s_${k}">${MONTHS.map((m,i)=>`<option value="${i+1}" ${v==i+1?'selected':''}>${m}</option>`).join('')}</select>`;
  return `<div class="card k3"><h3>ปีการศึกษาและภาคเรียน</h3><div class="row"><div><label>ภาคเรียนที่ 1 เริ่มเดือน</label>${mo('t1',T1)}</div><div><label>ภาคเรียนที่ 2 เริ่มเดือน</label>${mo('t2',T2)}</div></div>
  <label>ข้อความความเห็นฝ่ายบุคคลเริ่มต้น</label><input id="s_defOp" value="${S.defOp||'เห็นควรอนุญาต'}"><p><button class="btn g" onclick="saveSys()">${ic('check')} บันทึก</button></p></div>
